@@ -1,0 +1,14 @@
+
+> backend@1.0.0 start
+> node server.js
+
+[dotenv@17.2.1] injecting env (13) from .env -- tip: 📡 observe env with Radar: https://dotenvx.com/radar
+🚀 Consultations router V2 loaded - With complete student info support
+Users router loaded
+📁 File upload router loaded
+📊 Excel import/export router loaded
+📚 Loading all routes...
+✅ All routes registered successfully
+Server is running on port 5000
+Health check: http://localhost:5000/health
+✅ Database connected successfully
