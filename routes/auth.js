@@ -8,11 +8,11 @@ const { logAction } = require('../middleware/auditLog');
 
 // 로그인 라우트
 router.post('/login', [
-  body('email').isEmail().normalizeEmail(),
+  body('username').notEmpty().trim().withMessage('Username is required'),
   body('password').notEmpty().trim()
 ], async (req, res, next) => {
   try {
-    console.log('🔐 Login attempt for:', req.body.email);
+    console.log('🔐 Login attempt for:', req.body.username);
     
     // 유효성 검사
     const errors = validationResult(req);
@@ -24,14 +24,14 @@ router.post('/login', [
       });
     }
 
-    const { email, password } = req.body;
-    console.log('Processing login for:', email);
+    const { username, password } = req.body;
+    console.log('Processing login for:', username);
 
     // 사용자 조회
-    console.log('Looking for user with email:', email);
+    console.log('Looking for user with username:', username);
     
-    // 디버깅: 먼저 이메일로만 조회
-    const userCheck = await db('users').where('email', email).first();
+    // 디버깅: 먼저 username으로만 조회
+    const userCheck = await db('users').where('username', username).first();
     console.log('User exists?:', userCheck ? 'Yes' : 'No');
     if (userCheck) {
       console.log('User is_active value:', userCheck.is_active);
@@ -40,7 +40,7 @@ router.post('/login', [
     
     // 실제 조회
     const user = await db('users')
-      .where('email', email)
+      .where('username', username)
       .where('is_active', 1)  // PostgreSQL에서는 boolean이 숫자 1로 저장
       .first();
     
@@ -48,10 +48,10 @@ router.post('/login', [
     // Force reload
     if (user) {
       console.log('User details:', {
-        user_id: user.user_id,
-        email: user.email,
+        user_id: user.user_id || user.id,
+        username: user.username,
         role: user.role,
-        has_password: !!user.password_hash
+        has_password: !!user.password
       });
     }
 
@@ -68,7 +68,7 @@ router.post('/login', [
 
     // 비밀번호 확인
     console.log('Checking password...');
-    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+    const isPasswordValid = await bcrypt.compare(password, user.password);
     console.log('Password valid:', isPasswordValid);
     
     if (!isPasswordValid) {
@@ -81,13 +81,14 @@ router.post('/login', [
       });
     }
 
-    // JWT 토큰 생성 (teacher의 경우 자신의 user_id를 agency_id로 사용)
+    // JWT 토큰 생성 (teacher의 경우 자신의 id를 agency_id로 사용)
+    const userId = user.user_id || user.id;
     const token = jwt.sign(
       { 
-        userId: user.user_id,
-        email: user.email,
+        userId: userId,
+        username: user.username,
         role: user.role,
-        agencyId: user.role === 'teacher' ? user.user_id : null
+        agencyId: user.role === 'teacher' ? userId : null
       },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRE || '7d' }
@@ -95,15 +96,15 @@ router.post('/login', [
 
     // 마지막 로그인 시간 업데이트
     await db('users')
-      .where({ user_id: user.user_id })
+      .where({ id: userId })
       .update({ last_login: new Date() });
 
     // 로그인 감사 로그
     req.user = user;
-    await logAction(req, 'LOGIN', 'users', user.user_id);
+    await logAction(req, 'LOGIN', 'users', userId);
 
     // 비밀번호 제거
-    delete user.password_hash;
+    delete user.password;
 
     res.json({
       success: true,
