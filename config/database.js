@@ -24,11 +24,11 @@ if (isProd) {
   let dbHost, dbPort, dbUser;
   
   if (usePooler) {
-    // Pooler 연결 (IPv6 문제 없음)
-    dbHost = process.env.DB_HOST || 'aws-0-ap-northeast-2.pooler.supabase.com';
-    dbPort = process.env.DB_PORT || '6543';
-    dbUser = process.env.DB_USER || 'postgres.zowugqovtbukjstgblwk';
-    console.log('🔄 Using Pooler connection (IPv4 only)');
+    // Pooler 연결 (IPv6 문제 없음) - 강제로 올바른 값 사용
+    dbHost = 'aws-0-ap-northeast-2.pooler.supabase.com';
+    dbPort = '6543';
+    dbUser = 'postgres.zowugqovtbukjstgblwk';
+    console.log('🔄 Using Pooler connection (IPv4 only) - Forced values');
   } else {
     // 직접 연결 (환경변수로 제어 가능)
     dbHost = process.env.DB_HOST || 'db.zowugqovtbukjstgblwk.supabase.co';
@@ -37,8 +37,9 @@ if (isProd) {
     console.log('📡 Using direct connection');
   }
   
-  const dbPassword = process.env.DB_PASSWORD || 'duyang3927!';
-  const dbDatabase = process.env.DB_DATABASE || 'postgres';
+  // 강제로 올바른 값 사용
+  const dbPassword = 'duyang3927!';
+  const dbDatabase = 'postgres';
   
   console.log(`📊 Connecting to: ${dbHost}:${dbPort}`);
   console.log(`📊 Database: ${dbDatabase}, User: ${dbUser}`);
