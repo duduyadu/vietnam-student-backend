@@ -34,9 +34,20 @@ router.post('/login', [
     const columns = await db.raw(`SELECT column_name FROM information_schema.columns WHERE table_name = 'users' AND table_schema = 'public'`);
     console.log('🔍 Users table columns:', columns.rows.map(r => r.column_name).join(', '));
     
-    // 디버깅: 실제 데이터 확인
-    const allUsers = await db('users').select('id', 'username').limit(5);
-    console.log('📊 Sample users in DB:', allUsers);
+    // 디버깅: 실제 데이터 확인 (두 가지 테이블 구조 모두 지원)
+    try {
+      // id 컬럼이 있는 경우
+      const allUsers = await db('users').select('id', 'username').limit(5);
+      console.log('📊 Sample users in DB (id):', allUsers);
+    } catch (err) {
+      // user_id 컬럼이 있는 경우
+      try {
+        const allUsers = await db('users').select('user_id', 'username').limit(5);
+        console.log('📊 Sample users in DB (user_id):', allUsers);
+      } catch (err2) {
+        console.log('❌ Cannot query users table:', err2.message);
+      }
+    }
     
     // 디버깅: 먼저 username으로만 조회
     const userCheck = await db('users').where('username', username).first();
@@ -105,7 +116,7 @@ router.post('/login', [
     }
 
     // JWT 토큰 생성 (teacher의 경우 자신의 id를 agency_id로 사용)
-    const userId = user.id;  // Supabase는 id 필드 사용
+    const userId = user.id || user.user_id;  // id 또는 user_id 사용
     const token = jwt.sign(
       { 
         userId: userId,
@@ -117,9 +128,10 @@ router.post('/login', [
       { expiresIn: process.env.JWT_EXPIRE || '7d' }
     );
 
-    // 마지막 로그인 시간 업데이트
+    // 마지막 로그인 시간 업데이트 (id 또는 user_id 사용)
+    const whereClause = user.id ? { id: userId } : { user_id: userId };
     await db('users')
-      .where({ id: userId })
+      .where(whereClause)
       .update({ last_login: new Date() });
 
     // 로그인 감사 로그
@@ -134,9 +146,9 @@ router.post('/login', [
       message: 'Login successful',
       token,
       user: {
-        user_id: user.id,  // id를 user_id로 매핑
+        user_id: userId,  // 통일된 userId 사용
         username: user.username,
-        name: user.name,  // full_name이 아니라 name
+        name: user.name || user.full_name,  // name 또는 full_name
         role: user.role,
         agency_name: user.agency_name,
         branch_name: user.branch_name,
