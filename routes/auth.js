@@ -41,7 +41,7 @@ router.post('/login', [
     // 실제 조회
     const user = await db('users')
       .where('username', username)
-      .where('is_active', 1)  // PostgreSQL에서는 boolean이 숫자 1로 저장
+      .where('is_active', true)  // PostgreSQL boolean은 true/false 사용
       .first();
     
     console.log('User found with is_active=1?:', user ? 'Yes' : 'No');
@@ -82,7 +82,7 @@ router.post('/login', [
     }
 
     // JWT 토큰 생성 (teacher의 경우 자신의 id를 agency_id로 사용)
-    const userId = user.user_id || user.id;
+    const userId = user.id;  // Supabase는 id 필드 사용
     const token = jwt.sign(
       { 
         userId: userId,
@@ -111,13 +111,13 @@ router.post('/login', [
       message: 'Login successful',
       token,
       user: {
-        user_id: user.user_id,
-        email: user.email,
-        full_name: user.full_name,
+        user_id: user.id,  // id를 user_id로 매핑
+        username: user.username,
+        name: user.name,  // full_name이 아니라 name
         role: user.role,
         agency_name: user.agency_name,
         branch_name: user.branch_name,
-        preferred_language: user.preferred_language
+        preferred_language: user.preferred_language || 'ko'
       }
     });
 
@@ -232,11 +232,11 @@ router.post('/change-password', [
     }
 
     const { current_password, new_password } = req.body;
-    const userId = req.user.user_id;
+    const userId = req.user.id || req.user.user_id;
 
     // 현재 비밀번호 확인
     const user = await db('users')
-      .where({ user_id: userId })
+      .where({ id: userId })
       .first();
 
     const isPasswordValid = await bcrypt.compare(current_password, user.password);
@@ -255,7 +255,7 @@ router.post('/change-password', [
     const hashedPassword = await bcrypt.hash(new_password, 10);
     
     await db('users')
-      .where({ user_id: userId })
+      .where({ id: userId })
       .update({ 
         password: hashedPassword,
         updated_at: new Date()
@@ -317,7 +317,7 @@ router.post('/refresh-token', async (req, res) => {
 
     // 사용자 확인
     const user = await db('users')
-      .where({ user_id: decoded.userId, is_active: true })
+      .where({ id: decoded.userId, is_active: true })
       .first();
 
     if (!user) {
@@ -330,13 +330,13 @@ router.post('/refresh-token', async (req, res) => {
       });
     }
 
-    // 새 토큰 발급 (teacher의 경우 자신의 user_id를 agency_id로 사용)
+    // 새 토큰 발급 (teacher의 경우 자신의 id를 agency_id로 사용)
     const newToken = jwt.sign(
       { 
-        userId: user.user_id,
-        email: user.email,
+        userId: user.id,
+        username: user.username,
         role: user.role,
-        agencyId: user.role === 'teacher' ? user.user_id : null
+        agencyId: user.role === 'teacher' ? user.id : null
       },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRE || '7d' }

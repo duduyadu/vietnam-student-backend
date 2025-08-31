@@ -20,7 +20,7 @@ const verifyToken = async (req, res, next) => {
     
     // 사용자 정보 조회 - PostgreSQL boolean 처리
     const user = await db('users')
-      .where('user_id', decoded.userId)
+      .where('id', decoded.userId)  // user_id가 아니라 id 사용
       .where('is_active', true)  // PostgreSQL boolean은 true/false 사용
       .first();
     
@@ -35,12 +35,13 @@ const verifyToken = async (req, res, next) => {
     }
 
     // 비밀번호 제거
-    delete user.password_hash;
+    delete user.password;
     
     // JWT 토큰에서 agencyId 추가
     req.user = {
       ...user,
-      agency_id: decoded.agencyId || (user.role === 'teacher' ? user.user_id : null)
+      user_id: user.id,  // id를 user_id로 매핑
+      agency_id: decoded.agencyId || (user.role === 'teacher' ? user.id : null)
     };
     
     // 디버깅: req.user 구조 확인
@@ -113,7 +114,7 @@ const checkOwnership = (model) => {
       if (req.user.role === 'teacher') {
         if (model === 'students') {
           const student = await db('students')
-            .where({ student_id: id, agency_id: req.user.user_id })
+            .where({ student_id: id, agency_id: req.user.id || req.user.user_id })
             .first();
           
           if (!student) {

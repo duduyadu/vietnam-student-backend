@@ -16,7 +16,7 @@ router.post('/create',
   [
     body('username').notEmpty().trim().withMessage('Username is required'),
     body('password').isLength({ min: 6 }),
-    body('full_name').notEmpty().trim(),
+    body('name').notEmpty().trim(),
     body('role').isIn(['admin', 'teacher', 'korean_branch']),
     body('agency_name').optional().trim(),
     body('branch_name').optional().trim()
@@ -31,7 +31,7 @@ router.post('/create',
         });
       }
 
-      const { username, password, full_name, role, agency_name, branch_name } = req.body;
+      const { username, password, name, role, agency_name, branch_name } = req.body;
 
       // username 중복 확인
       const existingUser = await db('users')
@@ -74,7 +74,7 @@ router.post('/create',
         .insert({
           username,
           password: hashedPassword,
-          full_name,
+          name,
           role,
           agency_name: role === 'teacher' ? agency_name : null,
           branch_name: role === 'korean_branch' ? branch_name : null,
@@ -179,15 +179,15 @@ router.delete('/:id', checkRole('admin'), async (req, res) => {
       const otherTeacher = await db('users')
         .where('agency_name', user.agency_name)
         .where('role', 'teacher')
-        .whereNot('user_id', id)
+        .whereNot('id', id)
         .first();
 
       if (otherTeacher) {
         // 다른 교사에게 학생 이전
         await db('students')
           .where('agency_id', id)
-          .update({ agency_id: otherTeacher.user_id });
-        console.log('Students transferred to:', otherTeacher.user_id);
+          .update({ agency_id: otherTeacher.id });
+        console.log('Students transferred to:', otherTeacher.id);
       } else {
         // 다른 교사가 없으면 agency_id를 NULL로
         await db('students')
