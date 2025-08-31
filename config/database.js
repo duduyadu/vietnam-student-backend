@@ -7,7 +7,9 @@ const isProd = process.env.NODE_ENV === 'production';
 console.log('🚀 Starting database configuration...');
 console.log('📍 Environment:', process.env.NODE_ENV);
 console.log('📍 DATABASE_URL exists:', !!process.env.DATABASE_URL);
-console.log('📍 USE_INDIVIDUAL_PARAMS:', process.env.USE_INDIVIDUAL_PARAMS);
+console.log('📍 USE_POOLER:', process.env.USE_POOLER);
+console.log('📍 DB_HOST:', process.env.DB_HOST);
+console.log('📍 Timestamp:', new Date().toISOString());
 
 // DATABASE_URL이 있으면 사용, 없으면 개별 환경변수 사용
 let dbConfig;
