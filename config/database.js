@@ -37,8 +37,8 @@ if (isProd) {
     console.log('📡 Using direct connection');
   }
   
-  // 강제로 올바른 값 사용
-  const dbPassword = 'duyang3927!';
+  // 강제로 올바른 값 사용 - 새 비밀번호
+  const dbPassword = 'duyang3927duyang';
   const dbDatabase = 'postgres';
   
   console.log(`📊 Connecting to: ${dbHost}:${dbPort}`);
