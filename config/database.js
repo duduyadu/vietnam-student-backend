@@ -30,8 +30,6 @@ const dbConfig = {
   seeds: {
     directory: './database/seeds'
   }
-});
-
 };
 
 console.log('📌 Connecting to:', dbConfig.connection.host);
