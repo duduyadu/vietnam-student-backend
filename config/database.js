@@ -7,25 +7,91 @@ const isProd = process.env.NODE_ENV === 'production';
 // DATABASE_URL이 있으면 사용, 없으면 개별 환경변수 사용
 let dbConfig;
 
-// Railway Production에서는 Pooler 사용 (IPv6 문제 완전 해결)
-if (isProd) {
-  console.log('🚀 PRODUCTION MODE - Using Supabase POOLER (IPv4 only)');
+// Railway Production에서는 환경변수 우선, 없으면 직접 연결
+if (isProd && process.env.DATABASE_URL) {
+  console.log('🚀 PRODUCTION MODE - Using DATABASE_URL with special handling');
+  
+  // DATABASE_URL에서 호스트를 추출하여 IPv6 문제 확인
+  const dbUrl = process.env.DATABASE_URL;
+  
+  // Pooler URL인지 확인
+  if (dbUrl.includes('pooler.supabase.com')) {
+    console.log('📊 Pooler URL detected, using as-is');
+    dbConfig = {
+      client: 'pg',
+      connection: {
+        connectionString: dbUrl,
+        ssl: { rejectUnauthorized: false }
+      },
+      searchPath: ['public'],
+      pool: {
+        min: 2,
+        max: 10
+      }
+    };
+  } else {
+    // 일반 Supabase URL - 개별 파라미터로 분해
+    console.log('📊 Regular Supabase URL, parsing to avoid IPv6');
+    const urlMatch = dbUrl.match(/postgresql:\/\/([^:]+):([^@]+)@([^:\/]+):?(\d+)?\/(.+)/);
+    
+    if (urlMatch) {
+      const [, user, password, host, port = '5432', database] = urlMatch;
+      console.log(`🔗 Connecting to: ${host}:${port} as ${user}`);
+      
+      dbConfig = {
+        client: 'pg',
+        connection: {
+          host: host,
+          port: parseInt(port),
+          database: database.split('?')[0], // 쿼리 파라미터 제거
+          user: user,
+          password: password,
+          ssl: { rejectUnauthorized: false }
+        },
+        searchPath: ['public'],
+        pool: {
+          min: 2,
+          max: 10
+        }
+      };
+    } else {
+      // 파싱 실패 시 하드코딩된 값 사용
+      console.log('⚠️ URL parsing failed, using hardcoded values');
+      dbConfig = {
+        client: 'pg',
+        connection: {
+          host: 'db.zowugqovtbukjstgblwk.supabase.co',
+          port: 5432,
+          database: 'postgres',
+          user: 'postgres',
+          password: 'duyang3927!',
+          ssl: { rejectUnauthorized: false }
+        },
+        searchPath: ['public'],
+        pool: {
+          min: 2,
+          max: 10
+        }
+      };
+    }
+  }
+} else if (isProd) {
+  // Production인데 DATABASE_URL이 없는 경우
+  console.log('🚀 PRODUCTION MODE - No DATABASE_URL, using hardcoded connection');
   dbConfig = {
     client: 'pg',
     connection: {
-      host: 'aws-0-ap-northeast-2.pooler.supabase.com',
-      port: 6543,
+      host: 'db.zowugqovtbukjstgblwk.supabase.co',
+      port: 5432,
       database: 'postgres',
-      user: 'postgres.zowugqovtbukjstgblwk',  // Pooler 전용 사용자명
+      user: 'postgres',
       password: 'duyang3927!',
-      ssl: { rejectUnauthorized: false },
-      connectionString: undefined  // connectionString 강제 무시
+      ssl: { rejectUnauthorized: false }
     },
     searchPath: ['public'],
     pool: {
       min: 2,
-      max: 10,
-      acquireTimeoutMillis: 60000  // 연결 타임아웃 증가
+      max: 10
     }
   };
 } else if (process.env.DATABASE_URL) {
