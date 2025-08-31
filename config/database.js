@@ -1,17 +1,18 @@
 const knex = require('knex');
 require('dotenv').config();
 
-// Supabase PostgreSQL 설정 (Transaction Pooler)
+// Supabase PostgreSQL 설정 - Railway 환경변수 사용
 const db = knex({
   client: 'pg',
-  connection: {
-    host: 'aws-1-ap-northeast-2.pooler.supabase.com',  // aws-1로 수정!
-    port: 6543,  // Transaction pooling port
+  connection: process.env.DATABASE_URL || {
+    host: 'db.zowugqovtbukjstgblwk.supabase.co',
+    port: 5432,
     database: 'postgres',
-    user: 'postgres.bbehhfndfwtxvqllfnvp',  // Full username
-    password: 'duyang3927',  // Supabase 비밀번호
+    user: 'postgres',
+    password: 'duyang3927!',  // 비밀번호에 ! 추가
     ssl: { rejectUnauthorized: false }
   },
+  searchPath: ['public'],  // public 스키마 명시적 지정
   pool: {
     min: 2,
     max: 10
