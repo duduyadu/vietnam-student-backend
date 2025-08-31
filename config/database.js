@@ -7,7 +7,28 @@ const isProd = process.env.NODE_ENV === 'production';
 // DATABASE_URL이 있으면 사용, 없으면 개별 환경변수 사용
 let dbConfig;
 
-if (process.env.DATABASE_URL) {
+// Railway Production에서는 Pooler 사용 (IPv6 문제 완전 해결)
+if (isProd) {
+  console.log('🚀 PRODUCTION MODE - Using Supabase POOLER (IPv4 only)');
+  dbConfig = {
+    client: 'pg',
+    connection: {
+      host: 'aws-0-ap-northeast-2.pooler.supabase.com',
+      port: 6543,
+      database: 'postgres',
+      user: 'postgres.zowugqovtbukjstgblwk',  // Pooler 전용 사용자명
+      password: 'duyang3927!',
+      ssl: { rejectUnauthorized: false },
+      connectionString: undefined  // connectionString 강제 무시
+    },
+    searchPath: ['public'],
+    pool: {
+      min: 2,
+      max: 10,
+      acquireTimeoutMillis: 60000  // 연결 타임아웃 증가
+    }
+  };
+} else if (process.env.DATABASE_URL) {
   // Railway/Heroku 등에서 제공하는 DATABASE_URL 사용
   console.log('🔍 Using DATABASE_URL from environment');
   
