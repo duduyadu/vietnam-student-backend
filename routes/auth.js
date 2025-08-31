@@ -34,12 +34,18 @@ router.post('/login', [
     const columns = await db.raw(`SELECT column_name FROM information_schema.columns WHERE table_name = 'users' AND table_schema = 'public'`);
     console.log('🔍 Users table columns:', columns.rows.map(r => r.column_name).join(', '));
     
+    // 디버깅: 실제 데이터 확인
+    const allUsers = await db('users').select('id', 'username').limit(5);
+    console.log('📊 Sample users in DB:', allUsers);
+    
     // 디버깅: 먼저 username으로만 조회
     const userCheck = await db('users').where('username', username).first();
     console.log('User exists?:', userCheck ? 'Yes' : 'No');
     if (userCheck) {
       console.log('User is_active value:', userCheck.is_active);
       console.log('User is_active type:', typeof userCheck.is_active);
+      console.log('Available fields:', Object.keys(userCheck));
+      console.log('Password field:', userCheck.password ? 'password' : userCheck.password_hash ? 'password_hash' : 'NOT FOUND');
     }
     
     // 실제 조회
@@ -70,9 +76,22 @@ router.post('/login', [
       });
     }
 
-    // 비밀번호 확인
+    // 비밀번호 확인 (password 또는 password_hash 필드 사용)
     console.log('Checking password...');
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const hashedPassword = user.password || user.password_hash;
+    
+    if (!hashedPassword) {
+      console.error('No password field found in user record!');
+      return res.status(500).json({
+        error: {
+          message: 'Password field not found',
+          message_ko: '비밀번호 필드를 찾을 수 없습니다',
+          message_vi: 'Không tìm thấy trường mật khẩu'
+        }
+      });
+    }
+    
+    const isPasswordValid = await bcrypt.compare(password, hashedPassword);
     console.log('Password valid:', isPasswordValid);
     
     if (!isPasswordValid) {

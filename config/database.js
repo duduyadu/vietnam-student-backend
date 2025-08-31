@@ -40,6 +40,7 @@ if (isProd) {
   
   console.log(`📊 Connecting to: ${dbHost}:${dbPort}`);
   console.log(`📊 Database: ${dbDatabase}, User: ${dbUser}`);
+  console.log(`📊 Project: zowugqovtbukjstgblwk (Expected)`);
   
   // IPv6 문제를 완전히 피하기 위해 connectionString 사용 안 함
   dbConfig = {
