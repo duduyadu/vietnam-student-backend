@@ -1,15 +1,21 @@
 const knex = require('knex');
 require('dotenv').config();
 
-// Supabase PostgreSQL 설정 - Railway 환경변수 사용
-const db = knex({
+// 디버깅: 현재 DATABASE_URL 확인
+console.log('🔍 DATABASE_URL:', process.env.DATABASE_URL ? 'Set' : 'Not set');
+if (process.env.DATABASE_URL) {
+  console.log('🔍 DATABASE_URL contains:', process.env.DATABASE_URL.substring(0, 50) + '...');
+}
+
+// Supabase PostgreSQL 직접 연결 (DATABASE_URL 무시)
+const dbConfig = {
   client: 'pg',
-  connection: process.env.DATABASE_URL || {
+  connection: {
     host: 'db.zowugqovtbukjstgblwk.supabase.co',
     port: 5432,
     database: 'postgres',
     user: 'postgres',
-    password: 'duyang3927!',  // 비밀번호에 ! 추가
+    password: 'duyang3927!',
     ssl: { rejectUnauthorized: false }
   },
   searchPath: ['public'],  // public 스키마 명시적 지정
@@ -26,15 +32,24 @@ const db = knex({
   }
 });
 
-// Test database connection
-db.raw('SELECT 1')
-  .then(() => {
-    console.log('✅ Supabase PostgreSQL 연결 성공!');
-    console.log('⚡ 예상 성능 향상: 10-20배');
+};
+
+console.log('📌 Connecting to:', dbConfig.connection.host);
+
+const db = knex(dbConfig);
+
+// Test database connection and check username column
+db.raw("SELECT column_name FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'username'")
+  .then((result) => {
+    console.log('✅ Database 연결 성공!');
+    console.log('📊 Username column exists:', result.rows.length > 0 ? 'YES' : 'NO');
+    if (result.rows.length === 0) {
+      console.error('⚠️ WARNING: username column not found in users table!');
+    }
   })
   .catch((err) => {
-    console.error('❌ Supabase 연결 실패:', err.message);
-    console.log('Supabase 키와 URL을 확인해주세요.');
+    console.error('❌ Database 연결 실패:', err.message);
+    console.log('Connection config:', dbConfig.connection.host);
   });
 
 // PostgreSQL Client 가져오기 함수 (dashboard.js에서 사용)

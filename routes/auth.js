@@ -30,6 +30,10 @@ router.post('/login', [
     // 사용자 조회
     console.log('Looking for user with username:', username);
     
+    // 디버깅: 테이블 컬럼 확인
+    const columns = await db.raw(`SELECT column_name FROM information_schema.columns WHERE table_name = 'users' AND table_schema = 'public'`);
+    console.log('🔍 Users table columns:', columns.rows.map(r => r.column_name).join(', '));
+    
     // 디버깅: 먼저 username으로만 조회
     const userCheck = await db('users').where('username', username).first();
     console.log('User exists?:', userCheck ? 'Yes' : 'No');
