@@ -30,22 +30,45 @@ if (process.env.DATABASE_URL) {
   // 개별 환경변수 사용 (로컬 개발 또는 환경변수 직접 설정)
   console.log('🔍 Using individual database environment variables');
   
-  dbConfig = {
-    client: 'pg',
-    connection: {
-      host: process.env.DB_HOST || 'db.zowugqovtbukjstgblwk.supabase.co',
-      port: process.env.DB_PORT || 5432,
-      database: process.env.DB_DATABASE || 'postgres',
-      user: process.env.DB_USER || 'postgres',
-      password: process.env.DB_PASSWORD || 'duyang3927!',
-      ssl: isProd ? { rejectUnauthorized: false } : false
-    },
-    searchPath: ['public'],
-    pool: {
-      min: 2,
-      max: 10
-    }
-  };
+  // Railway에서 IPv6 문제가 있으면 Pooler 사용
+  const usePooler = process.env.USE_POOLER === 'true' || isProd;
+  
+  if (usePooler) {
+    console.log('🔄 Using Supabase Pooler connection for stability');
+    dbConfig = {
+      client: 'pg',
+      connection: {
+        host: process.env.DB_HOST || 'aws-0-ap-northeast-2.pooler.supabase.com',
+        port: process.env.DB_PORT || 6543,
+        database: process.env.DB_DATABASE || 'postgres',
+        user: process.env.DB_USER || 'postgres.zowugqovtbukjstgblwk',
+        password: process.env.DB_PASSWORD || 'duyang3927!',
+        ssl: { rejectUnauthorized: false }
+      },
+      searchPath: ['public'],
+      pool: {
+        min: 2,
+        max: 10
+      }
+    };
+  } else {
+    dbConfig = {
+      client: 'pg',
+      connection: {
+        host: process.env.DB_HOST || 'db.zowugqovtbukjstgblwk.supabase.co',
+        port: process.env.DB_PORT || 5432,
+        database: process.env.DB_DATABASE || 'postgres',
+        user: process.env.DB_USER || 'postgres',
+        password: process.env.DB_PASSWORD || 'duyang3927!',
+        ssl: isProd ? { rejectUnauthorized: false } : false
+      },
+      searchPath: ['public'],
+      pool: {
+        min: 2,
+        max: 10
+      }
+    };
+  }
 }
 
 // migrations와 seeds 설정 추가
