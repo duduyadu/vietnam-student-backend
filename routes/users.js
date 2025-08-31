@@ -16,7 +16,7 @@ router.post('/create',
   [
     body('username').notEmpty().trim().withMessage('Username is required'),
     body('password').isLength({ min: 6 }),
-    body('name').notEmpty().trim(),
+    body('full_name').notEmpty().trim(),
     body('role').isIn(['admin', 'teacher', 'korean_branch']),
     body('agency_name').optional().trim(),
     body('branch_name').optional().trim()
@@ -31,7 +31,7 @@ router.post('/create',
         });
       }
 
-      const { username, password, name, role, agency_name, branch_name } = req.body;
+      const { username, password, full_name, role, agency_name, branch_name } = req.body;
 
       // username 중복 확인
       const existingUser = await db('users')
@@ -73,8 +73,8 @@ router.post('/create',
       const [newUser] = await db('users')
         .insert({
           username,
-          password: hashedPassword,
-          name,
+          password_hash: hashedPassword,
+          full_name,
           role,
           agency_name: role === 'teacher' ? agency_name : null,
           branch_name: role === 'korean_branch' ? branch_name : null,
@@ -128,7 +128,13 @@ router.get('/', checkRole('admin'), async (req, res) => {
     });
   } catch (error) {
     console.error('Get users error:', error);
-    res.status(500).json({ error: 'Failed to get users' });
+    res.status(500).json({ 
+      error: {
+        message: 'Failed to get users',
+        message_ko: '사용자 목록을 불러오는데 실패했습니다',
+        details: error.message
+      }
+    });
   }
 });
 
