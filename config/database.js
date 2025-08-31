@@ -24,11 +24,11 @@ if (isProd) {
   let dbHost, dbPort, dbUser;
   
   if (usePooler) {
-    // Pooler 연결 (IPv6 문제 없음) - 강제로 올바른 값 사용
-    dbHost = 'aws-0-ap-northeast-2.pooler.supabase.com';
+    // Pooler 연결 (IPv6 문제 없음) - aws-1이 올바른 주소!
+    dbHost = 'aws-1-ap-northeast-2.pooler.supabase.com';  // aws-0이 아니라 aws-1
     dbPort = '6543';
     dbUser = 'postgres.zowugqovtbukjstgblwk';
-    console.log('🔄 Using Pooler connection (IPv4 only) - Forced values');
+    console.log('🔄 Using Pooler connection (aws-1) - Fixed!');
   } else {
     // 직접 연결 (환경변수로 제어 가능)
     dbHost = process.env.DB_HOST || 'db.zowugqovtbukjstgblwk.supabase.co';
@@ -164,11 +164,11 @@ if (isProd) {
     dbConfig = {
       client: 'pg',
       connection: {
-        host: process.env.DB_HOST || 'aws-0-ap-northeast-2.pooler.supabase.com',
+        host: process.env.DB_HOST || 'aws-1-ap-northeast-2.pooler.supabase.com',  // aws-1로 수정!
         port: process.env.DB_PORT || 6543,
         database: process.env.DB_DATABASE || 'postgres',
         user: process.env.DB_USER || 'postgres.zowugqovtbukjstgblwk',
-        password: process.env.DB_PASSWORD || 'duyang3927!',
+        password: process.env.DB_PASSWORD || 'duyang3927duyang',
         ssl: { rejectUnauthorized: false }
       },
       searchPath: ['public'],
@@ -185,7 +185,7 @@ if (isProd) {
         port: process.env.DB_PORT || 5432,
         database: process.env.DB_DATABASE || 'postgres',
         user: process.env.DB_USER || 'postgres',
-        password: process.env.DB_PASSWORD || 'duyang3927!',
+        password: process.env.DB_PASSWORD || 'duyang3927duyang',
         ssl: isProd ? { rejectUnauthorized: false } : false
       },
       searchPath: ['public'],
