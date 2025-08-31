@@ -175,7 +175,8 @@ router.post('/login', [
 
 // 회원가입 라우트 (관리자만 가능)
 router.post('/register', [
-  body('email').isEmail().normalizeEmail(),
+  body('username').notEmpty().trim(),
+  body('email').optional().isEmail().normalizeEmail(),
   body('password').isLength({ min: 6 }),
   body('full_name').notEmpty().trim(),
   body('role').isIn(['admin', 'teacher', 'korean_branch']),
@@ -195,6 +196,7 @@ router.post('/register', [
     }
 
     const { 
+      username,
       email, 
       password, 
       full_name, 
@@ -205,17 +207,17 @@ router.post('/register', [
       preferred_language 
     } = req.body;
 
-    // 이메일 중복 확인
+    // username 중복 확인
     const existingUser = await db('users')
-      .where({ email })
+      .where({ username })
       .first();
 
     if (existingUser) {
       return res.status(409).json({
         error: {
-          message: 'Email already exists',
-          message_ko: '이미 존재하는 이메일입니다',
-          message_vi: 'Email đã tồn tại'
+          message: 'Username already exists',
+          message_ko: '이미 존재하는 사용자 ID입니다',
+          message_vi: 'Tên người dùng đã tồn tại'
         }
       });
     }
@@ -226,6 +228,7 @@ router.post('/register', [
     // 사용자 생성
     const [newUser] = await db('users')
       .insert({
+        username,
         email,
         password_hash: hashedPassword,
         full_name,
@@ -235,7 +238,7 @@ router.post('/register', [
         branch_name: role === 'korean_branch' ? branch_name : null,
         preferred_language: preferred_language || 'ko'
       })
-      .returning(['user_id', 'email', 'full_name', 'role']);
+      .returning(['user_id', 'username', 'email', 'full_name', 'role']);
 
     res.status(201).json({
       success: true,
