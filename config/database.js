@@ -34,25 +34,50 @@ if (process.env.DATABASE_URL) {
       }
     };
   } else {
-    // Railway에서는 IPv6 문제가 자주 발생하므로 Production에서는 무조건 Pooler 사용
+    // Railway Production에서는 DATABASE_URL을 파싱하여 재구성
     if (isProd) {
-      console.log('🔄 Production detected - Using Pooler for stability');
-      dbConfig = {
-        client: 'pg',
-        connection: {
-          host: 'aws-0-ap-northeast-2.pooler.supabase.com',
-          port: 6543,
-          database: 'postgres',
-          user: 'postgres.zowugqovtbukjstgblwk',
-          password: 'duyang3927!',
-          ssl: { rejectUnauthorized: false }
-        },
-        searchPath: ['public'],
-        pool: {
-          min: 2,
-          max: 10
-        }
-      };
+      console.log('🔄 Production detected - Parsing and reconstructing DATABASE_URL');
+      
+      // DATABASE_URL에서 파라미터 추출
+      const urlParts = dbUrl.match(/postgresql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)/);
+      
+      if (urlParts) {
+        const [, user, password, host, port, database] = urlParts;
+        console.log(`📊 Parsed: user=${user}, host=${host}, port=${port}, db=${database}`);
+        
+        // 직접 연결 설정 (connectionString 대신 개별 파라미터 사용)
+        dbConfig = {
+          client: 'pg',
+          connection: {
+            host: host,
+            port: parseInt(port),
+            database: database,
+            user: user,
+            password: password,
+            ssl: { rejectUnauthorized: false }
+          },
+          searchPath: ['public'],
+          pool: {
+            min: 2,
+            max: 10
+          }
+        };
+      } else {
+        // 파싱 실패 시 기본값 사용
+        console.log('⚠️ Failed to parse DATABASE_URL, using fallback');
+        dbConfig = {
+          client: 'pg',
+          connection: {
+            connectionString: dbUrl,
+            ssl: { rejectUnauthorized: false }
+          },
+          searchPath: ['public'],
+          pool: {
+            min: 2,
+            max: 10
+          }
+        };
+      }
     } else {
       dbConfig = {
         client: 'pg',
