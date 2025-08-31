@@ -15,8 +15,8 @@ router.get('/', async (req, res) => {
     const { page = 1, limit = 10, search = '', agency_id } = req.query;
     const offset = (page - 1) * limit;
     
-    // 뷰 사용으로 JOIN 간소화
-    let query = db('v_students_full');
+    // students 테이블 직접 조회
+    let query = db('students');
     
     // 권한 필터링
     if (req.user.role === 'teacher') {
@@ -45,9 +45,15 @@ router.get('/', async (req, res) => {
     const countQuery = query.clone();
     const [{ count }] = await countQuery.count('* as count');
     
-    // 페이지네이션
+    // 페이지네이션 및 agencies 조인
     const students = await query
-      .orderBy('student_code', 'desc')
+      .leftJoin('agencies', 'students.agency_id', 'agencies.agency_id')
+      .select(
+        'students.*',
+        'agencies.agency_name',
+        'agencies.agency_code'
+      )
+      .orderBy('students.student_code', 'desc')
       .limit(limit)
       .offset(offset);
     
@@ -58,7 +64,10 @@ router.get('/', async (req, res) => {
       name: student.name_ko || student.name || '-',
       // 다른 필드들도 확인
       phone: student.phone || '-',
-      email: student.email || '-'
+      email: student.email || '-',
+      // agency 정보 추가
+      agency_name: student.agency_name || '-',
+      agency_code: student.agency_code || '-'
     }));
     
     res.json({

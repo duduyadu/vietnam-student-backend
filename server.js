@@ -29,6 +29,8 @@ const corsOptions = {
     const allowedOrigins = [
       'https://vetnam-student.netlify.app',
       'https://vietnam-student.netlify.app',
+      'https://vetnam-management.netlify.app',
+      'https://vietnam-management.netlify.app',
       'http://localhost:3000',
       'http://localhost:3001',
       'http://127.0.0.1:3000',

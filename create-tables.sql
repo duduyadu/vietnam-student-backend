@@ -1,4 +1,5 @@
 -- 이 파일을 Supabase SQL Editor에서 실행하세요
+-- 한 번에 전체 실행하거나, 각 섹션별로 실행 가능합니다
 
 -- 1. agencies 테이블 생성
 CREATE TABLE IF NOT EXISTS agencies (
@@ -77,9 +78,18 @@ VALUES
   ('PARENT', '학부모 상담', '학부모 상담', 'Tư vấn phụ huynh', '학부모와 함께하는 상담', 6)
 ON CONFLICT (type_code) DO NOTHING;
 
--- 5. 테이블 확인 쿼리
+-- 5. students 테이블에 누락된 컬럼 추가 (필요한 경우)
+ALTER TABLE students ADD COLUMN IF NOT EXISTS name_ko VARCHAR(100);
+ALTER TABLE students ADD COLUMN IF NOT EXISTS name_vi VARCHAR(100);
+ALTER TABLE students ADD COLUMN IF NOT EXISTS agency_id INTEGER REFERENCES agencies(agency_id);
+
+-- 6. 테이블 확인 쿼리
 SELECT 'agencies' as table_name, COUNT(*) as row_count FROM agencies
 UNION ALL
 SELECT 'consultation_types', COUNT(*) FROM consultation_types
 UNION ALL
-SELECT 'consultations', COUNT(*) FROM consultations;
+SELECT 'consultations', COUNT(*) FROM consultations
+UNION ALL
+SELECT 'students', COUNT(*) FROM students
+UNION ALL
+SELECT 'users', COUNT(*) FROM users;
