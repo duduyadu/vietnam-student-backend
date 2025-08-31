@@ -14,7 +14,7 @@ router.use(verifyToken);
 router.post('/create', 
   checkRole('admin'),
   [
-    body('email').isEmail().normalizeEmail(),
+    body('username').notEmpty().trim().withMessage('Username is required'),
     body('password').isLength({ min: 6 }),
     body('full_name').notEmpty().trim(),
     body('role').isIn(['admin', 'teacher', 'korean_branch']),
@@ -31,18 +31,18 @@ router.post('/create',
         });
       }
 
-      const { email, password, full_name, role, agency_name, branch_name } = req.body;
+      const { username, password, full_name, role, agency_name, branch_name } = req.body;
 
-      // 이메일 중복 확인
+      // username 중복 확인
       const existingUser = await db('users')
-        .where('email', email)
+        .where('username', username)
         .first();
 
       if (existingUser) {
         return res.status(400).json({
           error: {
-            message: 'Email already exists',
-            message_ko: '이미 사용중인 이메일입니다'
+            message: 'Username already exists',
+            message_ko: '이미 사용중인 사용자명입니다'
           }
         });
       }
@@ -72,8 +72,8 @@ router.post('/create',
       // 사용자 생성
       const [newUser] = await db('users')
         .insert({
-          email,
-          password_hash: hashedPassword,
+          username,
+          password: hashedPassword,
           full_name,
           role,
           agency_name: role === 'teacher' ? agency_name : null,
@@ -82,7 +82,7 @@ router.post('/create',
           created_at: new Date(),
           updated_at: new Date()
         })
-        .returning(['user_id', 'email', 'full_name', 'role']);
+        .returning(['user_id', 'username', 'full_name', 'role']);
 
       console.log('New user created:', newUser);
 
@@ -111,7 +111,7 @@ router.get('/', checkRole('admin'), async (req, res) => {
     const users = await db('users')
       .select(
         'user_id',
-        'email',
+        'username',
         'full_name',
         'role',
         'agency_name',
@@ -268,7 +268,7 @@ router.post('/:id/reset-password',
     await db('users')
       .where('user_id', id)
       .update({
-        password_hash: hashedPassword,
+        password: hashedPassword,
         updated_at: new Date()
       });
 

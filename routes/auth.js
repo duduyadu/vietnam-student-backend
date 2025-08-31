@@ -239,7 +239,7 @@ router.post('/change-password', [
       .where({ user_id: userId })
       .first();
 
-    const isPasswordValid = await bcrypt.compare(current_password, user.password_hash);
+    const isPasswordValid = await bcrypt.compare(current_password, user.password);
     
     if (!isPasswordValid) {
       return res.status(401).json({
@@ -257,7 +257,7 @@ router.post('/change-password', [
     await db('users')
       .where({ user_id: userId })
       .update({ 
-        password_hash: hashedPassword,
+        password: hashedPassword,
         updated_at: new Date()
       });
 
