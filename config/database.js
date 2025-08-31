@@ -11,21 +11,63 @@ if (process.env.DATABASE_URL) {
   // Railway/Heroku 등에서 제공하는 DATABASE_URL 사용
   console.log('🔍 Using DATABASE_URL from environment');
   
-  // IPv6 문제 해결을 위한 URL 파싱 및 수정
+  // IPv6 문제 해결: DATABASE_URL에 IPv6가 포함되어 있으면 무시하고 Pooler 사용
   const dbUrl = process.env.DATABASE_URL;
+  const hasIPv6 = dbUrl.includes('2406:da12') || dbUrl.includes('::');
   
-  dbConfig = {
-    client: 'pg',
-    connection: {
-      connectionString: dbUrl,
-      ssl: isProd ? { rejectUnauthorized: false } : false
-    },
-    searchPath: ['public'],
-    pool: {
-      min: 2,
-      max: 10
+  if (hasIPv6) {
+    console.log('⚠️ IPv6 detected in DATABASE_URL, switching to Pooler connection');
+    dbConfig = {
+      client: 'pg',
+      connection: {
+        host: 'aws-0-ap-northeast-2.pooler.supabase.com',
+        port: 6543,
+        database: 'postgres',
+        user: 'postgres.zowugqovtbukjstgblwk',
+        password: 'duyang3927!',
+        ssl: { rejectUnauthorized: false }
+      },
+      searchPath: ['public'],
+      pool: {
+        min: 2,
+        max: 10
+      }
+    };
+  } else {
+    // Railway에서는 IPv6 문제가 자주 발생하므로 Production에서는 무조건 Pooler 사용
+    if (isProd) {
+      console.log('🔄 Production detected - Using Pooler for stability');
+      dbConfig = {
+        client: 'pg',
+        connection: {
+          host: 'aws-0-ap-northeast-2.pooler.supabase.com',
+          port: 6543,
+          database: 'postgres',
+          user: 'postgres.zowugqovtbukjstgblwk',
+          password: 'duyang3927!',
+          ssl: { rejectUnauthorized: false }
+        },
+        searchPath: ['public'],
+        pool: {
+          min: 2,
+          max: 10
+        }
+      };
+    } else {
+      dbConfig = {
+        client: 'pg',
+        connection: {
+          connectionString: dbUrl,
+          ssl: isProd ? { rejectUnauthorized: false } : false
+        },
+        searchPath: ['public'],
+        pool: {
+          min: 2,
+          max: 10
+        }
+      };
     }
-  };
+  }
 } else {
   // 개별 환경변수 사용 (로컬 개발 또는 환경변수 직접 설정)
   console.log('🔍 Using individual database environment variables');
