@@ -4,96 +4,64 @@ require('dotenv').config();
 // 환경변수 기반 설정 (프로덕션 환경 우선)
 const isProd = process.env.NODE_ENV === 'production';
 
+console.log('🚀 Starting database configuration...');
+console.log('📍 Environment:', process.env.NODE_ENV);
+console.log('📍 DATABASE_URL exists:', !!process.env.DATABASE_URL);
+console.log('📍 USE_INDIVIDUAL_PARAMS:', process.env.USE_INDIVIDUAL_PARAMS);
+
 // DATABASE_URL이 있으면 사용, 없으면 개별 환경변수 사용
 let dbConfig;
 
-// Railway Production에서는 환경변수 우선, 없으면 직접 연결
-if (isProd && process.env.DATABASE_URL) {
-  console.log('🚀 PRODUCTION MODE - Using DATABASE_URL with special handling');
+// Production에서는 무조건 개별 파라미터 사용 (IPv6 완전 회피)
+if (isProd) {
+  console.log('🚀 PRODUCTION MODE - Forcing individual parameters to avoid IPv6');
   
-  // DATABASE_URL에서 호스트를 추출하여 IPv6 문제 확인
-  const dbUrl = process.env.DATABASE_URL;
+  // Railway에서 IPv6 문제를 피하기 위해 Pooler 사용을 기본으로
+  const usePooler = process.env.USE_POOLER !== 'false';  // 기본값 true
   
-  // Pooler URL인지 확인
-  if (dbUrl.includes('pooler.supabase.com')) {
-    console.log('📊 Pooler URL detected, using as-is');
-    dbConfig = {
-      client: 'pg',
-      connection: {
-        connectionString: dbUrl,
-        ssl: { rejectUnauthorized: false }
-      },
-      searchPath: ['public'],
-      pool: {
-        min: 2,
-        max: 10
-      }
-    };
+  let dbHost, dbPort, dbUser;
+  
+  if (usePooler) {
+    // Pooler 연결 (IPv6 문제 없음)
+    dbHost = process.env.DB_HOST || 'aws-0-ap-northeast-2.pooler.supabase.com';
+    dbPort = process.env.DB_PORT || '6543';
+    dbUser = process.env.DB_USER || 'postgres.zowugqovtbukjstgblwk';
+    console.log('🔄 Using Pooler connection (IPv4 only)');
   } else {
-    // 일반 Supabase URL - 개별 파라미터로 분해
-    console.log('📊 Regular Supabase URL, parsing to avoid IPv6');
-    const urlMatch = dbUrl.match(/postgresql:\/\/([^:]+):([^@]+)@([^:\/]+):?(\d+)?\/(.+)/);
-    
-    if (urlMatch) {
-      const [, user, password, host, port = '5432', database] = urlMatch;
-      console.log(`🔗 Connecting to: ${host}:${port} as ${user}`);
-      
-      dbConfig = {
-        client: 'pg',
-        connection: {
-          host: host,
-          port: parseInt(port),
-          database: database.split('?')[0], // 쿼리 파라미터 제거
-          user: user,
-          password: password,
-          ssl: { rejectUnauthorized: false }
-        },
-        searchPath: ['public'],
-        pool: {
-          min: 2,
-          max: 10
-        }
-      };
-    } else {
-      // 파싱 실패 시 하드코딩된 값 사용
-      console.log('⚠️ URL parsing failed, using hardcoded values');
-      dbConfig = {
-        client: 'pg',
-        connection: {
-          host: 'db.zowugqovtbukjstgblwk.supabase.co',
-          port: 5432,
-          database: 'postgres',
-          user: 'postgres',
-          password: 'duyang3927!',
-          ssl: { rejectUnauthorized: false }
-        },
-        searchPath: ['public'],
-        pool: {
-          min: 2,
-          max: 10
-        }
-      };
-    }
+    // 직접 연결 (환경변수로 제어 가능)
+    dbHost = process.env.DB_HOST || 'db.zowugqovtbukjstgblwk.supabase.co';
+    dbPort = process.env.DB_PORT || '5432';
+    dbUser = process.env.DB_USER || 'postgres';
+    console.log('📡 Using direct connection');
   }
-} else if (isProd) {
-  // Production인데 DATABASE_URL이 없는 경우
-  console.log('🚀 PRODUCTION MODE - No DATABASE_URL, using hardcoded connection');
+  
+  const dbPassword = process.env.DB_PASSWORD || 'duyang3927!';
+  const dbDatabase = process.env.DB_DATABASE || 'postgres';
+  
+  console.log(`📊 Connecting to: ${dbHost}:${dbPort}`);
+  console.log(`📊 Database: ${dbDatabase}, User: ${dbUser}`);
+  
+  // IPv6 문제를 완전히 피하기 위해 connectionString 사용 안 함
   dbConfig = {
     client: 'pg',
     connection: {
-      host: 'db.zowugqovtbukjstgblwk.supabase.co',
-      port: 5432,
-      database: 'postgres',
-      user: 'postgres',
-      password: 'duyang3927!',
+      host: dbHost,
+      port: parseInt(dbPort),
+      database: dbDatabase,
+      user: dbUser,
+      password: dbPassword,
       ssl: { rejectUnauthorized: false }
     },
     searchPath: ['public'],
     pool: {
       min: 2,
-      max: 10
+      max: 10,
+      acquireTimeoutMillis: 60000,
+      createTimeoutMillis: 30000
     }
   };
+  
+  console.log('✅ Database config created with individual parameters');
 } else if (process.env.DATABASE_URL) {
   // Railway/Heroku 등에서 제공하는 DATABASE_URL 사용
   console.log('🔍 Using DATABASE_URL from environment');
