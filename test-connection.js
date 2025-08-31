@@ -3,10 +3,10 @@ const { Client } = require('pg');
 
 // Supabase에서 복사한 연결 정보로 교체
 const client = new Client({
-  host: 'db.zowugqovtbukjstgblwk.supabase.co',
-  port: 5432,
+  host: 'aws-1-ap-northeast-2.pooler.supabase.com',  // aws-1로 변경!
+  port: 6543,  // Pooler 포트
   database: 'postgres',
-  user: 'postgres',
+  user: 'postgres.zowugqovtbukjstgblwk',  // Pooler 사용자명
   password: 'duyang3927duyang',
   ssl: { rejectUnauthorized: false }
 });
