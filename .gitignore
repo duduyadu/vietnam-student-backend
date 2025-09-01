@@ -37,3 +37,4 @@ build/
 # 임시 파일
 tmp/
 temp/
+SUPABASE_테이블_생성_가이드.md
