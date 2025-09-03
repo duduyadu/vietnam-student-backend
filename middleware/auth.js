@@ -20,7 +20,7 @@ const verifyToken = async (req, res, next) => {
     
     // 사용자 정보 조회 - PostgreSQL boolean 처리
     const user = await db('users')
-      .where('id', decoded.userId)  // user_id가 아니라 id 사용
+      .where('user_id', decoded.userId)  // user_id 사용 (테이블 구조에 맞게)
       .where('is_active', true)  // PostgreSQL boolean은 true/false 사용
       .first();
     
@@ -36,12 +36,13 @@ const verifyToken = async (req, res, next) => {
 
     // 비밀번호 제거
     delete user.password;
+    delete user.password_hash;
     
     // JWT 토큰에서 agencyId 추가
     req.user = {
       ...user,
-      user_id: user.id,  // id를 user_id로 매핑
-      agency_id: decoded.agencyId || (user.role === 'teacher' ? user.id : null)
+      user_id: user.user_id,  // user_id 그대로 사용
+      agency_id: decoded.agencyId || (user.role === 'teacher' ? user.user_id : null)
     };
     
     // 디버깅: req.user 구조 확인

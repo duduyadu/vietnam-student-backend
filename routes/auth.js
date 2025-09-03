@@ -87,12 +87,13 @@ router.post('/login', [
       });
     }
 
-    // 비밀번호 확인 (password 또는 password_hash 필드 사용)
+    // 비밀번호 확인 (password_hash 필드 사용)
     console.log('Checking password...');
-    const hashedPassword = user.password || user.password_hash;
+    const hashedPassword = user.password_hash;  // password_hash 필드만 사용
     
     if (!hashedPassword) {
-      console.error('No password field found in user record!');
+      console.error('No password_hash field found in user record!');
+      console.error('Available fields:', Object.keys(user));
       return res.status(500).json({
         error: {
           message: 'Password field not found',
@@ -139,6 +140,7 @@ router.post('/login', [
     await logAction(req, 'LOGIN', 'users', userId);
 
     // 비밀번호 제거
+    delete user.password_hash;
     delete user.password;
 
     res.json({
@@ -274,10 +276,10 @@ router.post('/change-password', [
 
     // 현재 비밀번호 확인
     const user = await db('users')
-      .where({ id: userId })
+      .where({ user_id: userId })  // user_id 사용
       .first();
 
-    const isPasswordValid = await bcrypt.compare(current_password, user.password);
+    const isPasswordValid = await bcrypt.compare(current_password, user.password_hash);
     
     if (!isPasswordValid) {
       return res.status(401).json({
@@ -293,9 +295,9 @@ router.post('/change-password', [
     const hashedPassword = await bcrypt.hash(new_password, 10);
     
     await db('users')
-      .where({ id: userId })
+      .where({ user_id: userId })  // user_id 사용
       .update({ 
-        password: hashedPassword,
+        password_hash: hashedPassword,  // password_hash 사용
         updated_at: new Date()
       });
 
@@ -355,7 +357,7 @@ router.post('/refresh-token', async (req, res) => {
 
     // 사용자 확인
     const user = await db('users')
-      .where({ id: decoded.userId, is_active: true })
+      .where({ user_id: decoded.userId, is_active: true })  // user_id 사용
       .first();
 
     if (!user) {
@@ -371,10 +373,10 @@ router.post('/refresh-token', async (req, res) => {
     // 새 토큰 발급 (teacher의 경우 자신의 id를 agency_id로 사용)
     const newToken = jwt.sign(
       { 
-        userId: user.id,
+        userId: user.user_id,  // user_id 사용
         username: user.username,
         role: user.role,
-        agencyId: user.role === 'teacher' ? user.id : null
+        agencyId: user.role === 'teacher' ? user.user_id : null  // user_id 사용
       },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRE || '7d' }

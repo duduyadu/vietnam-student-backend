@@ -38,3 +38,9 @@ build/
 tmp/
 temp/
 SUPABASE_테이블_생성_가이드.md
+
+# 중요 인증 정보 파일 (절대 커밋 금지!)
+CREDENTIALS.md
+credentials.md
+*.credentials
+*.secret
