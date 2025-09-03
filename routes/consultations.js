@@ -277,24 +277,30 @@ router.post('/', async (req, res) => {
       summary: summary
     });
     
-    // 상담 기록 생성
+    // 상담 기록 생성 - DB 스키마에 맞게 필드 매핑
+    // 추가 데이터를 attachments에 JSON으로 저장
+    const additionalData = {
+      content_vi: content_vi || '',
+      evaluation_category: evaluation_category || null,
+      evaluation_period: evaluation_period || null,
+      evaluation_data: evaluation_data || null,
+      overall_score: overall_score || null,
+      writer_role: req.user.role || 'teacher',
+      original_action_items: action_items || null
+    };
+    
     const consultationResult = await db('consultations').insert({
       student_id,
       teacher_id: req.user.user_id,
-      created_by: req.user.user_id,  // 중요: created_by 필드 추가
+      created_by: req.user.user_id,
       consultation_date,
-      consultation_type,
-      content_ko: content_ko || summary || '',  // content_ko가 없으면 summary 사용
-      content_vi: content_vi || '',
-      action_items: action_items || '',
-      next_consultation_date: next_consultation_date || null,
-      notes: summary || content_ko || '',  // summary를 notes 필드에 저장
-      // 평가 관련 필드
-      evaluation_category: evaluation_category || null,
-      evaluation_period: evaluation_period || null,
-      evaluation_data: evaluation_data ? JSON.stringify(evaluation_data) : null,
-      overall_score: overall_score || null,
-      writer_role: req.user.role || 'teacher'
+      consultation_type_id: 1,  // 기본 상담 유형 ID (general_consultation)
+      counselor_id: req.user.user_id,
+      counselor_name: req.user.full_name || req.user.username || '상담사',
+      consultation_content: content_ko || summary || '',  // 상담 내용
+      improvement_points: summary || '',  // 개선 사항
+      next_goals: action_items || '',  // 다음 목표 (action_items 매핑)
+      attachments: JSON.stringify(additionalData)  // 추가 데이터 JSON 저장
     }).returning('consultation_id');
     
     const consultation = Array.isArray(consultationResult) ? consultationResult[0] : consultationResult;
@@ -472,17 +478,27 @@ router.put('/:id', async (req, res) => {
       });
     }
     
-    // 업데이트
+    // 업데이트 - DB 스키마에 맞게 필드 매핑
+    // 기존 attachments 데이터 가져오기
+    const existingAttachments = consultation.attachments ? 
+      JSON.parse(consultation.attachments) : {};
+    
+    // 추가 데이터 병합
+    const updatedAttachments = {
+      ...existingAttachments,
+      content_vi: content_vi || existingAttachments.content_vi || '',
+      original_action_items: action_items || existingAttachments.original_action_items || null,
+      last_updated: new Date().toISOString()
+    };
+    
     await db('consultations')
       .where('consultation_id', id)
       .update({
         consultation_date,
-        consultation_type,
-        content_ko: content_ko || summary || '',
-        content_vi: content_vi || '',
-        action_items: action_items || '',
-        next_consultation_date: next_consultation_date || null,
-        notes: summary || content_ko || '',  // summary를 notes 필드에 저장
+        consultation_content: content_ko || summary || '',  // 상담 내용
+        improvement_points: summary || '',  // 개선 사항
+        next_goals: action_items || '',  // 다음 목표 (action_items 매핑)
+        attachments: JSON.stringify(updatedAttachments),  // 추가 데이터 JSON 저장
         updated_at: new Date()
       });
     
