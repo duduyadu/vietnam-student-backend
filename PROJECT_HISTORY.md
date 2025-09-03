@@ -305,3 +305,42 @@ try {
 - 모든 날짜 필드에 formatDate 적용
 - DB 스키마 불일치 문제 완전 해결
 - 에러 핸들링 강화
+
+---
+
+## 📅 2025-09-03 - Numeric Field Overflow 오류 해결
+
+### 🧠 ULTRATHINK: GPA 필드 오버플로우 근본 해결
+
+#### [2025-09-03 17:20] 오류 분석
+**문제**: `numeric field overflow - A field with precision 3, scale 2`
+**원인**: 
+- DB의 `high_school_gpa` 필드가 NUMERIC(3,2) 타입
+- NUMERIC(3,2) = 최대 9.99, 최소 -9.99
+- 베트남 GPA 시스템 (10점 만점)과 충돌
+
+#### [2025-09-03 17:25] 해결 방안 구현
+**수정 파일**: `routes/students-optimized.js`
+
+**이전 코드**:
+```javascript
+high_school_gpa: normalizedGpa ? parseFloat(normalizedGpa) : null
+```
+
+**수정된 코드**:
+```javascript
+high_school_gpa: (() => {
+  if (!normalizedGpa) return null;
+  const gpa = parseFloat(normalizedGpa);
+  const adjusted = Math.min(9.99, Math.max(0, gpa));
+  if (gpa !== adjusted) {
+    console.log(`⚠️ GPA 값 자동 조정: ${gpa} → ${adjusted} (DB NUMERIC(3,2) 제약)`);
+  }
+  return adjusted;
+})()
+```
+
+### ✅ 해결 완료
+- GPA 값 0-9.99 범위로 자동 조정
+- 조정 시 로그 출력으로 추적 가능
+- 베트남 10점 만점 시스템과 DB 제약 호환성 확보

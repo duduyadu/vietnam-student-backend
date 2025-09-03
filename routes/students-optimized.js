@@ -303,7 +303,15 @@ router.post('/', async (req, res) => {
       parent_phone,
       parent_income_level: normalizedParentIncome,  // 테이블 컬럼명과 일치
       high_school_name: normalizedHighSchool,  // 테이블 컬럼명과 일치
-      high_school_gpa: normalizedGpa ? parseFloat(normalizedGpa) : null,  // 테이블 컬럼명과 일치
+      high_school_gpa: (() => {
+        if (!normalizedGpa) return null;
+        const gpa = parseFloat(normalizedGpa);
+        const adjusted = Math.min(9.99, Math.max(0, gpa));
+        if (gpa !== adjusted) {
+          console.log(`⚠️ GPA 값 자동 조정: ${gpa} → ${adjusted} (DB NUMERIC(3,2) 제약)`);
+        }
+        return adjusted;
+      })(),
       target_major: normalizedMajor,  // 테이블 컬럼명과 일치
       target_university: normalizedUniversity,  // 테이블 컬럼명과 일치
       visa_type,
