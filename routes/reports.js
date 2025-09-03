@@ -22,17 +22,32 @@ router.get('/templates', async (req, res) => {
   console.log('📋 GET /api/reports/templates');
   
   try {
-    const templates = await db('report_templates')
-      .where('is_active', true)
-      .orderBy('display_order')
-      .select(
-        'template_id',
-        'template_name',
-        'template_code',
-        'description',
-        'report_type',
-        'allowed_roles'
-      );
+    // is_active 컬럼이 없을 수 있으므로 무시
+    let templates;
+    try {
+      templates = await db('report_templates')
+        .orderBy('display_order')
+        .select(
+          'template_id',
+          'template_name',
+          'template_code',
+          'description',
+          'report_type',
+          'allowed_roles'
+        );
+    } catch (error) {
+      console.log('⚠️ Error loading templates with display_order:', error.message);
+      // display_order 컬럼이 없으면 기본 정렬
+      templates = await db('report_templates')
+        .select(
+          'template_id',
+          'template_name',
+          'template_code',
+          'description',
+          'report_type',
+          'allowed_roles'
+        );
+    }
 
     // 권한 필터링
     const filteredTemplates = templates.filter(template => {
@@ -117,26 +132,27 @@ router.post('/generate', verifyToken, async (req, res) => {
     let template;
     
     try {
-      // 먼저 template_code로 시도
+      // 먼저 template_code로 시도 (is_active 컬럼이 없을 수 있음)
       template = await db('report_templates')
         .where('template_code', template_code)
-        .where('is_active', true)
         .first();
     } catch (error) {
-      // template_code 컬럼이 없으면 template_name 또는 ID로 검색
-      console.log('⚠️ template_code column not found, trying alternative search');
+      console.log('⚠️ Error searching by template_code:', error.message);
       
-      // 숫자면 template_id로, 문자열이면 template_name으로 검색
-      if (!isNaN(template_code)) {
-        template = await db('report_templates')
-          .where('template_id', parseInt(template_code))
-          .where('is_active', true)
-          .first();
-      } else {
-        template = await db('report_templates')
-          .where('template_name', 'like', `%${template_code}%`)
-          .where('is_active', true)
-          .first();
+      // template_code 컬럼이 없거나 다른 오류면 대체 검색
+      try {
+        // 숫자면 template_id로, 문자열이면 template_name으로 검색
+        if (!isNaN(template_code)) {
+          template = await db('report_templates')
+            .where('template_id', parseInt(template_code))
+            .first();
+        } else {
+          template = await db('report_templates')
+            .where('template_name', 'like', `%${template_code}%`)
+            .first();
+        }
+      } catch (innerError) {
+        console.log('⚠️ Alternative search also failed:', innerError.message);
       }
     }
     

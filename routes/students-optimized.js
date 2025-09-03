@@ -309,7 +309,7 @@ router.post('/', async (req, res) => {
       visa_type,
       visa_expiry_date: formatDate(normalizedVisaExpiry),  // 테이블 컬럼명과 일치
       // alien_registration removed - column doesn't exist in database
-      enrollment_date: normalizedEnrollmentDate,  // 테이블 컬럼명과 일치
+      enrollment_date: formatDate(normalizedEnrollmentDate),  // 테이블 컬럼명과 일치 + 날짜 형식 변환
       created_by: createdBy
     };
     

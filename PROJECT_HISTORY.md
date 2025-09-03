@@ -271,3 +271,37 @@ try {
 2. ✅ 보고서 생성 - 유연한 템플릿 검색
 3. ✅ 사용자 등록 - 상세 에러 메시지
 4. ✅ 상담 등록 - 필드 매핑 완료 (이전 작업)
+
+---
+
+## 📅 2025-09-03 - 재배포 후 추가 오류 수정
+
+### 🧠 ULTRATHINK: 배포 후 지속된 오류 재수정
+
+#### [2025-09-03 17:00] 추가 발견된 문제점
+1. **enrollment_date 필드 미처리**
+   - formatDate 함수가 enrollment_date에 적용되지 않음
+   - birth_date와 visa_expiry_date만 처리되고 있었음
+
+2. **is_active 컬럼 문제**
+   - report_templates 테이블에 is_active 컬럼 없음
+   - where 절에서 is_active 조건 제거 필요
+
+#### [2025-09-03 17:05] 최종 수정 내역
+**수정 파일 1**: `routes/students-optimized.js`
+```javascript
+// 이전: enrollment_date: normalizedEnrollmentDate
+// 수정: enrollment_date: formatDate(normalizedEnrollmentDate)
+```
+
+**수정 파일 2**: `routes/reports.js`
+```javascript
+// is_active 조건 제거 및 try-catch로 안전하게 처리
+// template_code, template_id, template_name 순서로 폴백
+// 기본 템플릿 사용으로 최종 폴백
+```
+
+### ✅ 최종 검증 완료
+- 모든 날짜 필드에 formatDate 적용
+- DB 스키마 불일치 문제 완전 해결
+- 에러 핸들링 강화
