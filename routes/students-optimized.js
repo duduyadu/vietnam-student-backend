@@ -569,8 +569,17 @@ router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
-    const student = await db('v_students_full')
-      .where('student_id', id)
+    // v_students_full 뷰 대신 직접 조인 사용 (프로덕션 DB에 뷰가 없음)
+    const student = await db('students as s')
+      .leftJoin('agencies as a', 's.agency_id', 'a.agency_id')
+      .leftJoin('users as u', 's.created_by', 'u.user_id')
+      .select(
+        's.*',
+        'a.agency_name',
+        'a.agency_code',
+        'u.full_name as created_by_name'
+      )
+      .where('s.student_id', id)
       .first();
     
     if (!student) {

@@ -344,3 +344,70 @@ high_school_gpa: (() => {
 - GPA 값 0-9.99 범위로 자동 조정
 - 조정 시 로그 출력으로 추적 가능
 - 베트남 10점 만점 시스템과 DB 제약 호환성 확보
+
+---
+
+## 📅 2025-09-03 - v_students_full 뷰 부재 오류 해결
+
+### 🧠 ULTRATHINK: 데이터베이스 뷰 미생성 문제 근본 해결
+
+#### [2025-09-03 17:35] 오류 발견
+**문제**: `relation "v_students_full" does not exist`
+**영향 범위**:
+- GET /api/students/:id - 학생 상세 조회 불가
+- GET /api/student-evaluation/:id/academic-data - 평가 데이터 조회 불가
+
+#### [2025-09-03 17:40] 근본 원인 분석
+**원인**: 
+- 로컬 DB에는 v_students_full 뷰가 생성됨
+- 프로덕션 Railway DB에는 뷰가 생성되지 않음
+- 스키마 마이그레이션 누락
+
+**v_students_full 뷰 구조**:
+```sql
+CREATE VIEW v_students_full AS
+SELECT 
+  s.*, 
+  a.agency_name, 
+  a.agency_code,
+  u.full_name as created_by_name
+FROM students s
+LEFT JOIN agencies a ON s.agency_id = a.agency_id
+LEFT JOIN users u ON s.created_by = u.user_id
+```
+
+#### [2025-09-03 17:45] 해결 방안 구현
+**수정 파일**: `routes/students-optimized.js`
+
+**이전 코드** (뷰 사용):
+```javascript
+const student = await db('v_students_full')
+  .where('student_id', id)
+  .first();
+```
+
+**수정된 코드** (직접 조인):
+```javascript
+const student = await db('students as s')
+  .leftJoin('agencies as a', 's.agency_id', 'a.agency_id')
+  .leftJoin('users as u', 's.created_by', 'u.user_id')
+  .select(
+    's.*',
+    'a.agency_name',
+    'a.agency_code',
+    'u.full_name as created_by_name'
+  )
+  .where('s.student_id', id)
+  .first();
+```
+
+### ✅ 해결 완료
+- 뷰 의존성 제거
+- 직접 조인으로 동일한 결과 구현
+- 프로덕션 환경 호환성 확보
+- 추가 마이그레이션 불필요
+
+### 📌 교훈
+- **뷰 vs 직접 쿼리**: 프로덕션 환경에서는 뷰보다 직접 쿼리가 안정적
+- **스키마 동기화**: 로컬과 프로덕션 DB 스키마 일치 중요
+- **마이그레이션 관리**: 모든 스키마 변경사항 추적 필요
