@@ -60,8 +60,12 @@ router.get('/', async (req, res) => {
     // 응답 데이터 형식 통일
     const formattedStudents = students.map(student => ({
       ...student,
-      // 이름 필드 확인 (name_ko가 있으면 사용, 없으면 name 필드 사용)
-      name: student.name_ko || student.name || '-',
+      // 이름 필드 매핑 (DB: name_korean → API: name, name_ko)
+      name: student.name_korean || student.name_ko || student.name || '-',
+      name_ko: student.name_korean || student.name_ko || '-',
+      name_vi: student.name_vietnamese || student.name_vi || '-',
+      // 상태 필드 추가 (기본값 설정)
+      status: student.status || 'active',
       // 다른 필드들도 확인
       phone: student.phone || '-',
       email: student.email || '-',

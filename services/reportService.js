@@ -871,9 +871,9 @@ class EnhancedReportService {
       // 6. 데이터베이스에 기록
       const student = await this.getStudentInfo(studentId);
       const insertResult = await db('generated_reports').insert({
-        student_id: studentId,
+        student_id: parseInt(studentId), // student_id를 정수로 확실히 변환
         template_id: 1,
-        report_title: `${student?.name_ko || '학생'} - 종합 보고서`,
+        report_title: `${student?.name_korean || student?.name_ko || '학생'} - 종합 보고서`,
         report_date: new Date().toISOString().split('T')[0],
         period_start: dateRange.start || null,
         period_end: dateRange.end || null,
@@ -903,7 +903,7 @@ class EnhancedReportService {
       // 실패한 경우에도 데이터베이스에 기록 시도
       try {
         await db('generated_reports').insert({
-          student_id: studentId,
+          student_id: parseInt(studentId), // student_id를 정수로 확실히 변환
           template_id: 1,
           report_title: `Failed Report - Student ${studentId}`,
           report_date: new Date().toISOString().split('T')[0],
