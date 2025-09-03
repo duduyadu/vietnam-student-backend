@@ -250,11 +250,30 @@ router.post('/register', [
 
   } catch (error) {
     console.error('Registration error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      detail: error.detail
+    });
+    
+    // 더 구체적인 에러 메시지 제공
+    let errorMessage = 'Registration failed';
+    let errorMessageKo = '회원가입에 실패했습니다';
+    
+    if (error.code === '23505') { // Unique constraint violation
+      errorMessage = 'Username or email already exists';
+      errorMessageKo = '이미 존재하는 사용자명 또는 이메일입니다';
+    } else if (error.code === '23502') { // Not null violation
+      errorMessage = 'Required field is missing';
+      errorMessageKo = '필수 항목이 누락되었습니다';
+    }
+    
     res.status(500).json({
       error: {
-        message: 'Registration failed',
-        message_ko: '회원가입에 실패했습니다',
-        message_vi: 'Đăng ký thất bại'
+        message: errorMessage,
+        message_ko: errorMessageKo,
+        message_vi: 'Đăng ký thất bại',
+        debug: process.env.NODE_ENV === 'development' ? error.message : undefined
       }
     });
   }

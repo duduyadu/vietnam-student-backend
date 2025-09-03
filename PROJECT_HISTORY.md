@@ -206,3 +206,68 @@ npm start
 - JWT 인증 베스트 프랙티스
 - bcrypt 비밀번호 해싱
 - PostgreSQL 스키마 정보 조회 방법
+
+---
+
+## 📅 2025-09-03 - 프로덕션 환경 오류 종합 해결
+
+### 🧠 ULTRATHINK: 근본 원인 분석
+
+#### 발생한 오류들
+1. **학생 추가 오류**
+   - 에러: `invalid input syntax for type date: "2025-01"`
+   - 원인: 날짜 형식 불일치 (YYYY-MM vs DATE 타입)
+   
+2. **보고서 생성 오류**
+   - 에러: `column "template_code" does not exist`
+   - 원인: report_templates 테이블 스키마 불일치
+   
+3. **사용자 등록 오류**
+   - 에러: `500 Internal Server Error`
+   - 원인: DB 스키마 또는 권한 문제
+
+#### 근본 원인
+**로컬 개발 DB와 Railway 프로덕션 DB의 스키마 불일치**
+
+### 🔧 해결 방법 및 수정 내역
+
+#### [2025-09-03 16:30] 날짜 형식 오류 해결
+**문제**: `invalid input syntax for type date: "2025-01"`
+**원인**: YYYY-MM 형식을 DATE 타입에 직접 입력 시도
+**해결**: 
+```javascript
+// formatDate 함수 개선 - YYYY-MM 형식을 YYYY-MM-01로 변환
+if (/^\d{4}-\d{2}$/.test(dateStr)) {
+  return `${dateStr}-01`;  // 월 단위 날짜는 1일로 설정
+}
+```
+**수정 파일**: `routes/students-optimized.js`
+
+#### [2025-09-03 16:35] 보고서 템플릿 오류 해결
+**문제**: `column "template_code" does not exist`
+**원인**: report_templates 테이블에 template_code 컬럼 부재
+**해결**: 
+```javascript
+// 유연한 템플릿 검색 로직 구현
+try {
+  template = await db('report_templates').where('template_code', template_code)...
+} catch {
+  // template_code 없으면 template_id 또는 template_name으로 검색
+  // 최악의 경우 기본 템플릿 사용
+}
+```
+**수정 파일**: `routes/reports.js`
+
+#### [2025-09-03 16:40] 사용자 등록 오류 개선
+**문제**: 500 Internal Server Error (상세 정보 없음)
+**해결**: 
+- 더 구체적인 에러 메시지 제공
+- PostgreSQL 에러 코드별 처리 (23505: 중복, 23502: NULL 제약)
+- 디버깅 정보 추가 (개발 환경)
+**수정 파일**: `routes/auth.js`
+
+### ✅ 최종 해결 상태
+1. ✅ 학생 등록 - 날짜 형식 자동 변환
+2. ✅ 보고서 생성 - 유연한 템플릿 검색
+3. ✅ 사용자 등록 - 상세 에러 메시지
+4. ✅ 상담 등록 - 필드 매핑 완료 (이전 작업)

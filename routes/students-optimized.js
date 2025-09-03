@@ -246,12 +246,27 @@ router.post('/', async (req, res) => {
     // birth_date와 visa_expiry 형식 변환 (YYYY-MM-DD)
     const formatDate = (dateStr) => {
       if (!dateStr) return null;
-      // 하이픈이 이미 있으면 그대로 사용
-      if (dateStr.includes('-')) return dateStr;
+      
+      // YYYY-MM 형식이면 01일 추가 (월 단위 날짜)
+      if (/^\d{4}-\d{2}$/.test(dateStr)) {
+        return `${dateStr}-01`;
+      }
+      
+      // YYYY-MM-DD 형식이면 그대로 사용
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        return dateStr;
+      }
+      
       // YYYYMMDD 형식을 YYYY-MM-DD로 변환
-      if (dateStr.length === 8) {
+      if (/^\d{8}$/.test(dateStr)) {
         return `${dateStr.slice(0,4)}-${dateStr.slice(4,6)}-${dateStr.slice(6,8)}`;
       }
+      
+      // YYYY/MM/DD 형식을 YYYY-MM-DD로 변환
+      if (/^\d{4}\/\d{2}\/\d{2}$/.test(dateStr)) {
+        return dateStr.replace(/\//g, '-');
+      }
+      
       return dateStr;
     };
     
