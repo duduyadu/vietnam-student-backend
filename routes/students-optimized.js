@@ -96,9 +96,12 @@ router.get('/', async (req, res) => {
 // ============================
 router.post('/', async (req, res) => {
   try {
+    // 필드명 호환성 처리 (프론트엔드와 백엔드 필드명 매핑)
     const { 
       name_ko, 
+      name_korean,  // 프론트엔드에서 사용하는 필드명
       name_vi, 
+      name_vietnamese,  // 프론트엔드에서 사용하는 필드명
       agency_id,
       phone,
       email,
@@ -109,73 +112,108 @@ router.post('/', async (req, res) => {
       parent_name,
       parent_phone,
       parent_income,
+      parent_income_level,  // 프론트엔드에서 사용하는 필드명
       high_school,
+      high_school_name,  // 프론트엔드에서 사용하는 필드명
       gpa,
+      high_school_gpa,  // 프론트엔드에서 사용하는 필드명
       desired_major,
+      target_major,  // 프론트엔드에서 사용하는 필드명
       desired_university,
+      target_university,  // 프론트엔드에서 사용하는 필드명
       visa_type,
       visa_expiry,
+      visa_expiry_date,  // 프론트엔드에서 사용하는 필드명
       alien_registration,
-      agency_enrollment_date
+      agency_enrollment_date,
+      enrollment_date  // 프론트엔드에서 사용하는 필드명
     } = req.body;
     
+    // 필드명 정규화 (프론트엔드/백엔드 호환성)
+    const normalizedName = name_ko || name_korean;
+    const normalizedNameVi = name_vi || name_vietnamese;
+    const normalizedParentIncome = parent_income || parent_income_level;
+    const normalizedHighSchool = high_school || high_school_name;
+    const normalizedGpa = gpa || high_school_gpa;
+    const normalizedMajor = desired_major || target_major;
+    const normalizedUniversity = desired_university || target_university;
+    const normalizedVisaExpiry = visa_expiry || visa_expiry_date;
+    const normalizedEnrollmentDate = agency_enrollment_date || enrollment_date;
+    
     console.log('📋 Request body received:', {
-      name_ko,
+      normalizedName,
       agency_id,
-      hasName: !!name_ko,
+      hasName: !!normalizedName,
       hasAgency: !!agency_id,
       fullBody: req.body
     });
     
-    // 필수 필드 검증
-    if (!name_ko || !agency_id) {
-      console.error('❌ Missing required fields:', { 
-        name_ko: name_ko || 'MISSING', 
-        agency_id: agency_id || 'MISSING' 
-      });
+    // 필수 필드 검증 - agency_id는 admin이 아닌 경우 선택사항으로 처리
+    if (!normalizedName) {
+      console.error('❌ Missing required name field');
       return res.status(400).json({
         error: 'Required fields missing',
-        message_ko: '이름과 유학원은 필수입니다',
+        message_ko: '학생 이름은 필수입니다',
         details: {
-          name_ko: !name_ko ? 'missing' : 'ok',
-          agency_id: !agency_id ? 'missing' : 'ok'
+          name: !normalizedName ? 'missing' : 'ok'
         }
       });
     }
     
-    // 유학원 코드 조회
-    const agency = await db('agencies')
-      .where('agency_id', agency_id)
-      .first();
-    
-    if (!agency) {
-      console.error('❌ Agency not found for ID:', agency_id);
-      return res.status(404).json({
-        error: 'Agency not found',
-        message_ko: '유학원을 찾을 수 없습니다',
-        agency_id: agency_id
-      });
-    }
-    
-    console.log('✅ Agency found:', {
-      agency_id: agency.agency_id,
-      agency_code: agency.agency_code,
-      name: agency.name
-    });
-    
-    // agency_code가 없으면 기본값 사용
-    if (!agency.agency_code) {
-      console.warn('⚠️ Agency has no agency_code, using default');
-      agency.agency_code = 'DEFAULT';
-    }
-    
-    // 권한 체크 (교사는 자기 유학원만)
-    if (req.user.role === 'teacher') {
+    // teacher의 경우 자신의 agency_id 자동 설정
+    let finalAgencyId = agency_id;
+    if (req.user.role === 'teacher' && !agency_id) {
+      // teacher가 속한 agency 찾기
       const teacherAgency = await db('agencies')
         .where('created_by', req.user.user_id)
         .first();
       
-      if (!teacherAgency || teacherAgency.agency_id !== agency_id) {
+      if (teacherAgency) {
+        finalAgencyId = teacherAgency.agency_id;
+        console.log('📌 Teacher agency auto-assigned:', finalAgencyId);
+      }
+    }
+    
+    // 유학원 코드 조회 (agency_id가 있는 경우에만)
+    let agency = null;
+    let student_code;
+    
+    if (finalAgencyId) {
+      agency = await db('agencies')
+        .where('agency_id', finalAgencyId)
+        .first();
+      
+      if (!agency) {
+        console.error('❌ Agency not found for ID:', finalAgencyId);
+        return res.status(404).json({
+          error: 'Agency not found',
+          message_ko: '유학원을 찾을 수 없습니다',
+          agency_id: finalAgencyId
+        });
+      }
+    }
+    
+    if (agency) {
+      console.log('✅ Agency found:', {
+        agency_id: agency.agency_id,
+        agency_code: agency.agency_code,
+        name: agency.name
+      });
+      
+      // agency_code가 없으면 기본값 사용
+      if (!agency.agency_code) {
+        console.warn('⚠️ Agency has no agency_code, using default');
+        agency.agency_code = 'DEFAULT';
+      }
+    }
+    
+    // 권한 체크 (교사는 자기 유학원만)
+    if (req.user.role === 'teacher' && finalAgencyId) {
+      const teacherAgency = await db('agencies')
+        .where('created_by', req.user.user_id)
+        .first();
+      
+      if (!teacherAgency || teacherAgency.agency_id !== finalAgencyId) {
         return res.status(403).json({
           error: 'Access denied',
           message_ko: '권한이 없습니다'
@@ -183,18 +221,24 @@ router.post('/', async (req, res) => {
       }
     }
     
-    // 학생 코드 자동 생성 시도
-    let student_code;
-    try {
-      const result = await db.raw('SELECT generate_student_code(?) as student_code', [agency.agency_code]);
-      student_code = result.rows[0].student_code;
-      console.log('✅ Generated student code:', student_code);
-    } catch (genError) {
-      console.error('❌ Error generating student code:', genError);
-      // 함수가 없거나 에러가 발생하면 타임스탬프 기반 코드 생성
+    // 학생 코드 자동 생성
+    if (agency) {
+      try {
+        const result = await db.raw('SELECT generate_student_code(?) as student_code', [agency.agency_code]);
+        student_code = result.rows[0].student_code;
+        console.log('✅ Generated student code:', student_code);
+      } catch (genError) {
+        console.error('❌ Error generating student code:', genError);
+        // 함수가 없거나 에러가 발생하면 타임스탬프 기반 코드 생성
+        const timestamp = Date.now().toString(36).toUpperCase();
+        student_code = `${agency.agency_code || 'STU'}-${timestamp}`;
+        console.log('⚠️ Using fallback student code:', student_code);
+      }
+    } else {
+      // agency가 없을 경우 기본 학생 코드 생성
       const timestamp = Date.now().toString(36).toUpperCase();
-      student_code = `${agency.agency_code || 'STU'}-${timestamp}`;
-      console.log('⚠️ Using fallback student code:', student_code);
+      student_code = `STU-${timestamp}`;
+      console.log('🆔 Using default student code (no agency):', student_code);
     }
     
     console.log(`📝 Creating student with code: ${student_code}`);
@@ -227,13 +271,13 @@ router.post('/', async (req, res) => {
       console.warn('⚠️ Warning: req.user.user_id is undefined, using default value:', createdBy);
     }
     
-    // 학생 데이터 준비
+    // 학생 데이터 준비 (정규화된 필드 사용)
     const studentData = {
       student_code,
-      name_ko,
-      name_vi: name_vi || name_ko, // name_vi가 없으면 name_ko 사용
-      agency_id,
-      status: 'studying',
+      name_korean: normalizedName,  // 테이블 컬럼명과 일치
+      name_vietnamese: normalizedNameVi || normalizedName,
+      agency_id: finalAgencyId,  // null일 수 있음
+      // status field removed - column doesn't exist in database
       phone,
       email,
       birth_date: formatDate(birth_date),
@@ -242,15 +286,15 @@ router.post('/', async (req, res) => {
       address_korea,
       parent_name,
       parent_phone,
-      parent_income,
-      high_school,
-      gpa: gpa ? parseFloat(gpa) : null,
-      desired_major,
-      desired_university,
+      parent_income_level: normalizedParentIncome,  // 테이블 컬럼명과 일치
+      high_school_name: normalizedHighSchool,  // 테이블 컬럼명과 일치
+      high_school_gpa: normalizedGpa ? parseFloat(normalizedGpa) : null,  // 테이블 컬럼명과 일치
+      target_major: normalizedMajor,  // 테이블 컬럼명과 일치
+      target_university: normalizedUniversity,  // 테이블 컬럼명과 일치
       visa_type,
-      visa_expiry: formatDate(visa_expiry),
-      alien_registration,
-      agency_enrollment_date,
+      visa_expiry_date: formatDate(normalizedVisaExpiry),  // 테이블 컬럼명과 일치
+      // alien_registration removed - column doesn't exist in database
+      enrollment_date: normalizedEnrollmentDate,  // 테이블 컬럼명과 일치
       created_by: createdBy
     };
     
