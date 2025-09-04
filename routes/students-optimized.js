@@ -32,7 +32,7 @@ router.get('/', async (req, res) => {
     if (search) {
       query = query.where(function() {
         this.where('student_code', 'like', `%${search}%`)
-          .orWhere('name_ko', 'like', `%${search}%`);
+          .orWhere('name_korean', 'like', `%${search}%`);  // 🧠 ULTRATHINK: DB 컬럼명 통일
       });
     }
     

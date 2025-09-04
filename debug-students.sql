@@ -56,7 +56,7 @@ SELECT
   c.consultation_id,
   c.student_id,
   c.consultation_date,
-  c.consultation_type,
+  c.consultation_type_id,
   s.student_code,
   s.name_korean
 FROM consultations c

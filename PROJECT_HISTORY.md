@@ -661,3 +661,50 @@ UPDATE consultations
 SET student_id = NULL
 WHERE student_id NOT IN (SELECT student_id FROM students);
 ```
+
+---
+
+## 2025-09-04: DB 스키마 불일치 근본 해결 (ULTRATHINK)
+
+### 🔴 발견된 근본 문제
+**반복되는 오류**: `column "name_ko" does not exist`
+
+### 🧠 ULTRATHINK 분석
+#### 원인
+- **로컬 개발 DB**: `name_ko`, `name_vi` 컬럼 사용
+- **프로덕션 DB (Supabase)**: `name_korean`, `name_vietnamese` 컬럼 사용
+- **영향 범위**: 70개 참조, 17개 파일
+
+#### 핵심 문제 파일
+- `helpers/studentHelper.js` - `.select('name_ko', 'name_vi')` ❌
+
+### ✅ 적용한 해결책
+
+#### 1. helpers/studentHelper.js 수정
+```javascript
+// 이전 (오류)
+.select('name_ko', 'name_vi')
+return student.name_ko || student.name_vi
+
+// 수정 (정상)
+.select('name_korean', 'name_vietnamese')
+return student.name_korean || student.name_vietnamese
+```
+
+#### 2. routes/students-optimized.js 수정
+```javascript
+// 검색 쿼리 수정
+.orWhere('name_korean', 'like', `%${search}%`)
+```
+
+### 📝 스키마 통일 전략 문서
+**파일**: `SCHEMA_FIX_STRATEGY.md` 생성
+- 전체 변경 계획
+- 일괄 변경 스크립트
+- 영구적 해결책 제시
+
+### 🎯 교훈
+1. **DB 스키마가 절대 진리**: 코드는 항상 DB 스키마를 따라야 함
+2. **환경별 차이 제거**: 로컬과 프로덕션 DB는 동일한 스키마 유지
+3. **필드명 문서화**: 모든 필드명은 명확히 문서화
+4. **헬퍼 함수 중요성**: 공통 함수의 오류는 전체 시스템에 영향

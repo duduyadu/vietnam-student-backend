@@ -46,17 +46,18 @@ async function getStudentsFullInfo(studentIds = []) {
 async function getStudentName(studentId) {
   try {
     // students 테이블에서 직접 이름 조회
+    // 🧠 ULTRATHINK: DB 컬럼명 통일 (name_korean, name_vietnamese 사용)
     const student = await db('students')
       .where('student_id', studentId)
-      .select('name_ko', 'name_vi')
+      .select('name_korean', 'name_vietnamese')
       .first();
     
     if (!student) {
       return '이름 없음';
     }
     
-    // name_ko가 있으면 사용, 없으면 name_vi 사용
-    return student.name_ko || student.name_vi || '이름 없음';
+    // name_korean이 있으면 사용, 없으면 name_vietnamese 사용
+    return student.name_korean || student.name_vietnamese || '이름 없음';
   } catch (error) {
     console.error('Error getting student name:', error);
     return '이름 없음';
