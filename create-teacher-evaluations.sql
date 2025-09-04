@@ -50,19 +50,40 @@ COMMENT ON COLUMN teacher_evaluations.attachments IS 'JSON 형식의 추가 데�
 
 -- =====================================================
 -- generated_reports 테이블 수정 (외래키 제약 수정)
--- PDF 생성 오류 해결
+-- PDF 생성 오류 해결 - ULTRATHINK 분석 결과
 -- =====================================================
 
--- 기존 외래키 제약 확인 및 제거 (있는 경우)
+-- 기존 외래키 제약 확인 및 제거 (모든 가능한 제약 이름)
 ALTER TABLE generated_reports 
   DROP CONSTRAINT IF EXISTS fk_report_student;
+  
+ALTER TABLE generated_reports 
+  DROP CONSTRAINT IF EXISTS generated_reports_student_id_fkey;
 
 -- 새로운 외래키 제약 추가 (ON DELETE SET NULL)
+-- 이렇게 하면 학생이 삭제되어도 보고서 기록은 남음
 ALTER TABLE generated_reports
   ADD CONSTRAINT fk_report_student 
   FOREIGN KEY (student_id) 
   REFERENCES students(student_id) 
-  ON DELETE SET NULL;
+  ON DELETE SET NULL
+  ON UPDATE CASCADE;
+
+-- generated_reports 테이블에 누락된 컬럼들 추가 (필요한 경우)
+ALTER TABLE generated_reports 
+  ADD COLUMN IF NOT EXISTS report_title VARCHAR(500),
+  ADD COLUMN IF NOT EXISTS report_date DATE DEFAULT CURRENT_DATE,
+  ADD COLUMN IF NOT EXISTS period_start DATE,
+  ADD COLUMN IF NOT EXISTS period_end DATE,
+  ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'completed',
+  ADD COLUMN IF NOT EXISTS pdf_path TEXT,
+  ADD COLUMN IF NOT EXISTS html_path TEXT,
+  ADD COLUMN IF NOT EXISTS file_size INTEGER,
+  ADD COLUMN IF NOT EXISTS generation_time_ms INTEGER,
+  ADD COLUMN IF NOT EXISTS generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  ADD COLUMN IF NOT EXISTS last_accessed_at TIMESTAMP,
+  ADD COLUMN IF NOT EXISTS access_count INTEGER DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS error_message TEXT;
 
 -- =====================================================
 -- students 테이블에 status 컬럼 추가 (누락된 경우)

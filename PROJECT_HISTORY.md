@@ -521,3 +521,114 @@ ALTER TABLE generated_reports
 - **테이블 생성 관리**: 모든 필요한 테이블 생성 스크립트 유지
 - **타입 안정성**: foreign key 참조 시 데이터 타입 일치 확인
 - **기본값 처리**: undefined 방지를 위한 기본값 설정 필수
+
+---
+
+## 2025-09-03 (추가): PDF 생성 Foreign Key 제약 오류 해결 (ULTRATHINK)
+
+### 🚨 문제 상황
+**오류 메시지**: 
+```
+insert into "generated_reports" violates foreign key constraint "fk_report_student"
+Detail: Key (student_id)=(10) is not present in table "students".
+```
+
+### 🧠 ULTRATHINK 분석 과정
+
+#### 1. 근본 원인 분석
+- **증상**: PDF 생성 시 500 에러 발생
+- **직접 원인**: student_id=10이 students 테이블에 존재하지 않음
+- **근본 원인**: 
+  - 프론트엔드에서 잘못된 student_id 전달
+  - 학생 삭제 후 참조 무결성 깨짐
+  - 학생 존재 여부 사전 검증 누락
+
+#### 2. 디버깅 프로세스
+```sql
+-- 실행한 디버깅 쿼리들
+SELECT * FROM students WHERE student_id = 10;  -- 결과: 없음
+SELECT MIN(student_id), MAX(student_id) FROM students;  -- 실제 ID 범위 확인
+```
+
+#### 3. 해결 방안 검토
+- **Option A**: Foreign Key 제약 제거 → ❌ 데이터 무결성 훼손
+- **Option B**: ON DELETE CASCADE → ❌ 보고서도 함께 삭제됨
+- **Option C**: ON DELETE SET NULL + 검증 로직 → ✅ 채택
+
+### 💡 적용한 해결책
+
+#### 1. 학생 존재 여부 사전 검증 (services/reportService.js)
+```javascript
+// 🧠 ULTRATHINK: 학생 존재 여부 먼저 확인 (Foreign Key 오류 방지)
+const studentExists = await this.getStudentInfo(studentId);
+if (!studentExists) {
+  console.error(`❌ Student not found with ID: ${studentId}`);
+  throw new Error(`Student with ID ${studentId} does not exist in database`);
+}
+console.log(`✅ Student found: ${studentExists.name_korean || studentExists.name_ko}`);
+```
+
+#### 2. Foreign Key 제약 조건 개선 (create-teacher-evaluations.sql)
+```sql
+-- ON DELETE SET NULL로 변경 (학생 삭제해도 보고서 기록은 유지)
+ALTER TABLE generated_reports
+  ADD CONSTRAINT fk_report_student 
+  FOREIGN KEY (student_id) 
+  REFERENCES students(student_id) 
+  ON DELETE SET NULL
+  ON UPDATE CASCADE;
+```
+
+#### 3. 누락된 컬럼들 추가
+```sql
+ALTER TABLE generated_reports 
+  ADD COLUMN IF NOT EXISTS report_title VARCHAR(500),
+  ADD COLUMN IF NOT EXISTS pdf_path TEXT,
+  ADD COLUMN IF NOT EXISTS file_size INTEGER,
+  -- ... 기타 필요 컬럼들
+```
+
+### 🔍 디버깅 도구 생성
+**파일**: `debug-students.sql`
+- 현재 학생 ID 범위 확인
+- 잘못된 참조 찾기
+- 최근 생성된 학생 확인
+
+### ✅ 검증 결과
+- **사전 검증**: 존재하지 않는 학생 ID로 PDF 생성 시도 시 명확한 에러 메시지
+- **데이터 무결성**: Foreign Key 제약은 유지하면서 유연성 확보
+- **에러 추적**: 상세한 로그로 문제 원인 즉시 파악 가능
+
+### 📊 오류 처리 흐름도
+```
+프론트엔드 요청 (student_id)
+    ↓
+[routes/reports.js] 학생 존재 확인
+    ↓ (없으면 404 반환)
+[reportService.js] 이중 검증
+    ↓ (없으면 명확한 에러 throw)
+PDF 생성 진행
+    ↓
+DB Insert (Foreign Key 제약 통과)
+```
+
+### 📝 실행 필요 작업
+1. **즉시 실행**: Supabase SQL Editor에서 실행
+   - `create-teacher-evaluations.sql` (Foreign Key 수정)
+   - `debug-students.sql` (현재 데이터 상태 확인)
+
+2. **프론트엔드 확인**: 
+   - 왜 student_id=10을 전송하는지 확인 필요
+   - 학생 목록과 실제 ID 매칭 검증
+
+### 🎯 예방 조치
+1. **입력 검증 강화**: 모든 ID 파라미터 사전 검증
+2. **에러 메시지 개선**: 구체적인 원인 명시
+3. **트랜잭션 처리**: PDF 생성과 DB 저장을 트랜잭션으로 묶기
+4. **모니터링**: Foreign Key 오류 발생 시 즉시 알림
+
+### 📌 핵심 교훈
+- **Foreign Key 오류는 대부분 데이터 불일치**: 참조하는 데이터의 존재 여부 먼저 확인
+- **이중 검증의 중요성**: 라우트와 서비스 레이어 모두에서 검증
+- **명확한 에러 메시지**: "student not found with ID: X" 같은 구체적 메시지로 디버깅 시간 단축
+- **데이터 무결성 vs 유연성**: ON DELETE SET NULL로 균형점 찾기

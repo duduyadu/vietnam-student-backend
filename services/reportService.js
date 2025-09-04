@@ -839,6 +839,14 @@ class EnhancedReportService {
     try {
       console.log('📊 Starting report generation for student:', studentId);
       
+      // 🧠 ULTRATHINK: 학생 존재 여부 먼저 확인 (Foreign Key 오류 방지)
+      const studentExists = await this.getStudentInfo(studentId);
+      if (!studentExists) {
+        console.error(`❌ Student not found with ID: ${studentId}`);
+        throw new Error(`Student with ID ${studentId} does not exist in database`);
+      }
+      console.log(`✅ Student found: ${studentExists.name_korean || studentExists.name_ko || studentExists.student_code}`);
+      
       // 1. HTML 생성 (템플릿 사용)
       const htmlContent = await this.generateHTMLFromTemplate(studentId, language);
       
@@ -869,11 +877,11 @@ class EnhancedReportService {
       console.log(`✅ PDF generated in ${generationTime}ms`);
       
       // 6. 데이터베이스에 기록
-      const student = await this.getStudentInfo(studentId);
+      // studentExists는 이미 위에서 검증됨
       const insertResult = await db('generated_reports').insert({
         student_id: parseInt(studentId), // student_id를 정수로 확실히 변환
         template_id: 1,
-        report_title: `${student?.name_korean || student?.name_ko || '학생'} - 종합 보고서`,
+        report_title: `${studentExists?.name_korean || studentExists?.name_ko || '학생'} - 종합 보고서`,
         report_date: new Date().toISOString().split('T')[0],
         period_start: dateRange.start || null,
         period_end: dateRange.end || null,
