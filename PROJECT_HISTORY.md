@@ -632,3 +632,32 @@ DB Insert (Foreign Key 제약 통과)
 - **이중 검증의 중요성**: 라우트와 서비스 레이어 모두에서 검증
 - **명확한 에러 메시지**: "student not found with ID: X" 같은 구체적 메시지로 디버깅 시간 단축
 - **데이터 무결성 vs 유연성**: ON DELETE SET NULL로 균형점 찾기
+
+---
+
+## 2025-09-03 (추가 수정): 오류 기록 시 Foreign Key 문제 해결
+
+### 🔄 추가 발견된 문제
+**증상**: 검증 로직은 작동하지만, 실패를 DB에 기록할 때 여전히 Foreign Key 오류 발생
+
+### 🎯 해결책
+```javascript
+// 학생이 존재하지 않으면 student_id를 null로 설정
+const studentIdForLog = error.message.includes('does not exist') ? null : parseInt(studentId);
+```
+
+### 🗂️ 데이터 정합성 문제
+**근본 원인**: consultations 테이블에 student_id=10 기록이 있지만, students 테이블에는 해당 학생이 없음
+
+**해결 SQL**:
+```sql
+-- 고아 상담 기록 찾기
+SELECT c.* FROM consultations c
+LEFT JOIN students s ON c.student_id = s.student_id
+WHERE s.student_id IS NULL;
+
+-- 문제 해결
+UPDATE consultations 
+SET student_id = NULL
+WHERE student_id NOT IN (SELECT student_id FROM students);
+```

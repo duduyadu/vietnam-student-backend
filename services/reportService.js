@@ -909,9 +909,12 @@ class EnhancedReportService {
       console.error('Error stack:', error.stack);
       
       // 실패한 경우에도 데이터베이스에 기록 시도
+      // 🧠 ULTRATHINK: 학생이 존재하지 않으면 student_id를 null로 설정
       try {
+        const studentIdForLog = error.message.includes('does not exist') ? null : parseInt(studentId);
+        
         await db('generated_reports').insert({
-          student_id: parseInt(studentId), // student_id를 정수로 확실히 변환
+          student_id: studentIdForLog, // 존재하지 않는 학생은 null로 저장
           template_id: 1,
           report_title: `Failed Report - Student ${studentId}`,
           report_date: new Date().toISOString().split('T')[0],
