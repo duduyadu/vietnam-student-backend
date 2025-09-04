@@ -708,3 +708,29 @@ return student.name_korean || student.name_vietnamese
 2. **환경별 차이 제거**: 로컬과 프로덕션 DB는 동일한 스키마 유지
 3. **필드명 문서화**: 모든 필드명은 명확히 문서화
 4. **헬퍼 함수 중요성**: 공통 함수의 오류는 전체 시스템에 영향
+
+### 🚀 배포 및 검증 (2025-09-04 12:00)
+#### 배포 내역
+- **Commit**: `05e0a5e` - 🧠 ULTRATHINK: DB 스키마 불일치 근본 해결
+- **배포 방법**: GitHub push → Railway 자동 배포
+- **배포 상태**: ✅ 성공 (API 응답 확인)
+
+#### 수정 파일 배포
+1. **helpers/studentHelper.js**: name_ko/name_vi → name_korean/name_vietnamese
+2. **routes/students-optimized.js**: 필드 매핑 및 검색 쿼리 수정
+3. **SCHEMA_FIX_STRATEGY.md**: 해결 전략 문서화
+4. **PROJECT_HISTORY.md**: 디버깅 과정 기록
+
+### ⏭️ 다음 단계
+1. **프론트엔드 테스트**: 
+   - 학생 목록 페이지에서 이름 정상 표시 확인
+   - PDF 보고서 생성 기능 테스트
+   
+2. **남은 파일 수정** (15개):
+   - routes/reports.js
+   - routes/consultations.js
+   - 기타 name_ko/name_vi 참조 파일들
+   
+3. **Supabase SQL 실행**:
+   - create-teacher-evaluations.sql 마이그레이션
+   - 고아 레코드 정리
