@@ -46,11 +46,10 @@ async function getStudentsFullInfo(studentIds = []) {
 // 학생 이름만 빠르게 조회
 async function getStudentName(studentId) {
   try {
-    // 🧠 ULTRATHINK: 환경별로 다른 필드명 사용!
-    // Railway = name_ko, Local = name_korean
-    const isRailway = process.env.RAILWAY_ENVIRONMENT === 'production';
-    const nameField = isRailway ? 'name_ko' : 'name_korean';
-    const nameViField = isRailway ? 'name_vi' : 'name_vietnamese';
+    // 🧠 ULTRATHINK: DB는 하나! 모두 같은 필드명 사용
+    // DB columns: name_korean, name_vietnamese
+    const nameField = 'name_korean';
+    const nameViField = 'name_vietnamese';
     
     // students 테이블에서 직접 이름 조회
     const student = await db('students')
@@ -62,10 +61,8 @@ async function getStudentName(studentId) {
       return '이름 없음';
     }
     
-    // 환경에 따라 다른 필드 접근
-    return student[nameField] || student[nameViField] || 
-           student.name_ko || student.name_korean || 
-           student.name_vi || student.name_vietnamese || '이름 없음';
+    // 한국어 이름 우선, 없으면 베트남어 이름
+    return student.name_korean || student.name_vietnamese || '이름 없음';
   } catch (error) {
     console.error('Error getting student name:', error);
     return '이름 없음';

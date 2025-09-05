@@ -14,8 +14,27 @@ console.log('📍 Timestamp:', new Date().toISOString());
 // DATABASE_URL이 있으면 사용, 없으면 개별 환경변수 사용
 let dbConfig;
 
-// Production에서는 무조건 개별 파라미터 사용 (IPv6 완전 회피)
-if (isProd) {
+// 🧠 ULTRATHINK: DATABASE_URL을 최우선으로 체크!
+if (process.env.DATABASE_URL) {
+  console.log('🎯 DATABASE_URL found - using it as primary connection');
+  const dbUrl = process.env.DATABASE_URL;
+  
+  dbConfig = {
+    client: 'pg',
+    connection: {
+      connectionString: dbUrl,
+      ssl: { rejectUnauthorized: false }
+    },
+    searchPath: ['public'],
+    pool: {
+      min: 2,
+      max: 10,
+      acquireTimeoutMillis: 60000,
+      createTimeoutMillis: 30000
+    }
+  };
+  console.log('✅ Using DATABASE_URL for connection');
+} else if (isProd) {
   console.log('🚀 PRODUCTION MODE - Forcing individual parameters to avoid IPv6');
   
   // Railway에서 IPv6 문제를 피하기 위해 Pooler 사용을 기본으로
@@ -66,8 +85,8 @@ if (isProd) {
   };
   
   console.log('✅ Database config created with individual parameters');
-} else if (process.env.DATABASE_URL) {
-  // Railway/Heroku 등에서 제공하는 DATABASE_URL 사용
+} else if (false) {
+  // 이미 위에서 DATABASE_URL 처리함
   console.log('🔍 Using DATABASE_URL from environment');
   
   // IPv6 문제 해결: DATABASE_URL에 IPv6가 포함되어 있으면 무시하고 Pooler 사용
