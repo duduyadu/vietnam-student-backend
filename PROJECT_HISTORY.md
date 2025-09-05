@@ -912,3 +912,29 @@ ALTER TABLE generated_reports
 - ✅ Railway 서버 정상 복구
 - ⚠️ Railway 환경에서의 DB 진단 방법 재검토 필요
 - 📌 PDF 생성 오류는 여전히 해결 필요
+
+---
+
+## 2025-09-05 (최종): Railway DB 실제 스키마 확인!
+
+### 🔴 진짜 원인 발견
+**Railway DB는 `name_ko`, `name_vi` 사용!** (name_korean 아님)
+
+#### 오류 로그 분석
+```
+column "name_korean" does not exist
+```
+
+#### 혼란의 원인
+1. 로컬 테스트: aws-1 연결 → name_korean 있다고 착각
+2. Railway 실제: name_ko, name_vi 사용
+3. 수정 방향: name_korean → name_ko
+
+#### 최종 수정
+1. **helpers/studentHelper.js**: name_ko, name_vi 사용
+2. **services/reportService.js**: name_ko로 디버깅 쿼리 수정
+
+### ✅ 해결 완료
+- studentHelper.js와 reportService.js를 name_ko/name_vi로 수정
+- Railway 배포 완료
+- PDF 생성 오류 해결 예상
