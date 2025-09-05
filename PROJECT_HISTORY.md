@@ -827,3 +827,32 @@ ALTER TABLE generated_reports
 - **성능**: 전혀 문제없음 (PostgreSQL은 수백만 건도 처리)
 - **ID 관리**: 자동 증가 시퀀스로 충분
 - **확장성**: 필요시 파티셔닝, 인덱스 최적화로 대응
+
+---
+
+## 2025-09-05 (최종): DB HOST 불일치 - 진짜 원인 발견!
+
+### 🔴 최종 문제 발견
+**로컬과 Railway가 다른 DB HOST 사용!**
+
+### 🧠 ULTRATHINK 최종 분석
+#### 혼란의 진짜 원인
+- **로컬 .env**: `aws-0-ap-northeast-2.pooler.supabase.com` (연결 실패)
+- **Railway**: `aws-1-ap-northeast-2.pooler.supabase.com` (정상)
+- **Supabase**: `name_korean`, `name_vietnamese` 사용
+
+#### 혼란의 과정
+1. 로컬에서 테스트 → aws-0 연결 실패 → 오류 발생 안함
+2. Railway 배포 → aws-1 연결 성공 → 하지만 코드가 name_ko 사용
+3. 디버깅 혼란 → 계속 코드를 바꿨지만 원인은 DB HOST
+
+### ✅ 최종 해결
+1. **로컬 .env 수정**: aws-0 → aws-1
+2. **코드 복원**: name_korean, name_vietnamese 사용
+3. **테스트 완료**: 연결 성공 확인
+
+### 🎯 최종 교훈
+1. **환경변수 일치**: 로컬과 프로덕션 환경변수 정확히 일치
+2. **연결 테스트 우선**: DB 스키마 확인 전에 연결부터 확인
+3. **혼란 기록의 중요성**: 잘못된 시도도 모두 기록
+4. **Supabase Pooler**: aws-0, aws-1 등 여러 엔드포인트 존재 주의
