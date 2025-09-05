@@ -861,9 +861,15 @@ class EnhancedReportService {
       const studentExists = await this.getStudentInfo(studentId);
       if (!studentExists) {
         console.error(`❌ Student not found with ID: ${studentId}`);
-        throw new Error(`Student with ID ${studentId} does not exist in database`);
+        // 실제 존재하는 학생 ID 안내
+        const existingStudents = await db('students')
+          .select('student_id', 'student_code', 'name_ko')
+          .orderBy('student_id', 'desc')
+          .limit(5);
+        console.log('📋 Available students:', existingStudents);
+        throw new Error(`Student with ID ${studentId} does not exist. Available IDs: ${existingStudents.map(s => s.student_id).join(', ')}`);
       }
-      console.log(`✅ Student found: ${studentExists.name_korean || studentExists.name_ko || studentExists.student_code}`);
+      console.log(`✅ Student found: ${studentExists.name_ko || studentExists.name_korean || studentExists.student_code}`);
       
       // 1. HTML 생성 (템플릿 사용)
       const htmlContent = await this.generateHTMLFromTemplate(studentId, language);

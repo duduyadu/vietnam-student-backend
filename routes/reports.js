@@ -210,12 +210,25 @@ router.post('/generate', verifyToken, async (req, res) => {
 
   } catch (error) {
     console.error('❌ Generate report error:', error);
-    res.status(500).json({
-      error: 'Failed to generate report',
-      message: error.message,
-      message_ko: '보고서 생성에 실패했습니다',
-      message_vi: 'Không thể tạo báo cáo'
-    });
+    
+    // 🧠 ULTRATHINK: 학생이 없는 경우 더 명확한 메시지
+    if (error.message.includes('does not exist')) {
+      const availableIds = error.message.match(/Available IDs: (.+)/);
+      res.status(404).json({
+        error: 'Student not found',
+        message: error.message,
+        available_students: availableIds ? availableIds[1] : 'Please check student list',
+        message_ko: `학생을 찾을 수 없습니다. 존재하는 학생 ID를 사용해주세요.`,
+        message_vi: 'Không tìm thấy học sinh'
+      });
+    } else {
+      res.status(500).json({
+        error: 'Failed to generate report',
+        message: error.message,
+        message_ko: '보고서 생성에 실패했습니다',
+        message_vi: 'Không thể tạo báo cáo'
+      });
+    }
   }
 });
 
