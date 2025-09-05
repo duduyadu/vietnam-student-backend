@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const { mapField } = require('./dbFieldMapper');
 
 /**
  * 학생의 완전한 정보를 조회하는 헬퍼 함수
@@ -45,19 +46,22 @@ async function getStudentsFullInfo(studentIds = []) {
 // 학생 이름만 빠르게 조회
 async function getStudentName(studentId) {
   try {
+    // 🧠 ULTRATHINK: 동적 필드 매핑으로 환경별 차이 해결!
+    const nameKoField = await mapField('name_ko');
+    const nameViField = await mapField('name_vi');
+    
     // students 테이블에서 직접 이름 조회
-    // 🧠 ULTRATHINK: Supabase DB는 name_korean, name_vietnamese 사용!
     const student = await db('students')
       .where('student_id', studentId)
-      .select('name_korean', 'name_vietnamese')
+      .select(nameKoField, nameViField)
       .first();
     
     if (!student) {
       return '이름 없음';
     }
     
-    // name_korean이 있으면 사용, 없으면 name_vietnamese 사용
-    return student.name_korean || student.name_vietnamese || '이름 없음';
+    // 동적으로 필드 접근
+    return student[nameKoField] || student[nameViField] || '이름 없음';
   } catch (error) {
     console.error('Error getting student name:', error);
     return '이름 없음';
