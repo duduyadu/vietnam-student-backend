@@ -29,12 +29,12 @@ if (process.env.DATABASE_URL) {
     const passwordMatch = dbUrl.match(/postgresql:\/\/[^:]+:([^@]+)@/);
     const password = passwordMatch ? passwordMatch[1] : process.env.DB_PASSWORD || 'duyang3927duyang';
     
-    // IPv4 Pooler 연결 강제 (aws-1)
+    // IPv4 Pooler 연결 강제 (Transaction mode, IPv6 회피)
     dbConfig = {
       client: 'pg',
       connection: {
-        host: 'aws-1-ap-northeast-2.pooler.supabase.com',
-        port: 6543,
+        host: 'aws-1-ap-northeast-2.pooler.supabase.com',  // Transaction pooler
+        port: 6543,  // Transaction pooler port
         database: 'postgres',
         user: 'postgres.zowugqovtbukjstgblwk',
         password: password,
