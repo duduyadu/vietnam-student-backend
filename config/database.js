@@ -14,26 +14,57 @@ console.log('📍 Timestamp:', new Date().toISOString());
 // DATABASE_URL이 있으면 사용, 없으면 개별 환경변수 사용
 let dbConfig;
 
-// 🧠 ULTRATHINK: DATABASE_URL을 최우선으로 체크!
+// 🧠 ULTRATHINK: DATABASE_URL을 파싱하여 IPv6 문제 회피!
 if (process.env.DATABASE_URL) {
-  console.log('🎯 DATABASE_URL found - using it as primary connection');
+  console.log('🎯 DATABASE_URL found - parsing to avoid IPv6');
   const dbUrl = process.env.DATABASE_URL;
   
-  dbConfig = {
-    client: 'pg',
-    connection: {
-      connectionString: dbUrl,
-      ssl: { rejectUnauthorized: false }
-    },
-    searchPath: ['public'],
-    pool: {
-      min: 2,
-      max: 10,
-      acquireTimeoutMillis: 60000,
-      createTimeoutMillis: 30000
-    }
-  };
-  console.log('✅ Using DATABASE_URL for connection');
+  // IPv6 감지
+  const hasIPv6 = dbUrl.includes('[2') || dbUrl.includes('::') || dbUrl.includes('2406:');
+  
+  if (hasIPv6 || isProd) {
+    console.log('⚠️ IPv6 detected or production mode - using IPv4 pooler instead');
+    
+    // DATABASE_URL에서 비밀번호만 추출
+    const passwordMatch = dbUrl.match(/postgresql:\/\/[^:]+:([^@]+)@/);
+    const password = passwordMatch ? passwordMatch[1] : process.env.DB_PASSWORD || 'duyang3927duyang';
+    
+    // IPv4 Pooler 연결 강제 (aws-1)
+    dbConfig = {
+      client: 'pg',
+      connection: {
+        host: 'aws-1-ap-northeast-2.pooler.supabase.com',
+        port: 6543,
+        database: 'postgres',
+        user: 'postgres.zowugqovtbukjstgblwk',
+        password: password,
+        ssl: { rejectUnauthorized: false }
+      },
+      searchPath: ['public'],
+      pool: {
+        min: 2,
+        max: 10,
+        acquireTimeoutMillis: 60000,
+        createTimeoutMillis: 30000
+      }
+    };
+    console.log('✅ Forced IPv4 pooler connection to avoid ENETUNREACH');
+  } else {
+    // 로컬 환경에서만 connectionString 사용
+    dbConfig = {
+      client: 'pg',
+      connection: {
+        connectionString: dbUrl,
+        ssl: false
+      },
+      searchPath: ['public'],
+      pool: {
+        min: 2,
+        max: 10
+      }
+    };
+    console.log('✅ Using DATABASE_URL for local connection');
+  }
 } else if (isProd) {
   console.log('🚀 PRODUCTION MODE - Forcing individual parameters to avoid IPv6');
   
