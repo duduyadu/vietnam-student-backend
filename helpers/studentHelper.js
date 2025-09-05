@@ -1,5 +1,5 @@
 const db = require('../config/database');
-const { mapField } = require('./dbFieldMapper');
+// const { mapField } = require('./dbFieldMapper'); // 임시 비활성화
 
 /**
  * 학생의 완전한 정보를 조회하는 헬퍼 함수
@@ -46,22 +46,22 @@ async function getStudentsFullInfo(studentIds = []) {
 // 학생 이름만 빠르게 조회
 async function getStudentName(studentId) {
   try {
-    // 🧠 ULTRATHINK: 동적 필드 매핑으로 환경별 차이 해결!
-    const nameKoField = await mapField('name_ko');
-    const nameViField = await mapField('name_vi');
+    // 🧠 ULTRATHINK: Railway 호환성을 위해 직접 필드명 사용
+    // const nameKoField = await mapField('name_ko');
+    // const nameViField = await mapField('name_vi');
     
     // students 테이블에서 직접 이름 조회
     const student = await db('students')
       .where('student_id', studentId)
-      .select(nameKoField, nameViField)
+      .select('name_korean', 'name_vietnamese')
       .first();
     
     if (!student) {
       return '이름 없음';
     }
     
-    // 동적으로 필드 접근
-    return student[nameKoField] || student[nameViField] || '이름 없음';
+    // 직접 필드 접근
+    return student.name_korean || student.name_vietnamese || '이름 없음';
   } catch (error) {
     console.error('Error getting student name:', error);
     return '이름 없음';
