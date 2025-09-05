@@ -46,14 +46,11 @@ async function getStudentsFullInfo(studentIds = []) {
 // 학생 이름만 빠르게 조회
 async function getStudentName(studentId) {
   try {
-    // 🧠 ULTRATHINK: Railway 호환성을 위해 직접 필드명 사용
-    // const nameKoField = await mapField('name_ko');
-    // const nameViField = await mapField('name_vi');
-    
+    // 🧠 ULTRATHINK: Railway는 name_ko 사용! (name_korean 아님)
     // students 테이블에서 직접 이름 조회
     const student = await db('students')
       .where('student_id', studentId)
-      .select('name_korean', 'name_vietnamese')
+      .select('name_ko', 'name_vi')
       .first();
     
     if (!student) {
@@ -61,7 +58,7 @@ async function getStudentName(studentId) {
     }
     
     // 직접 필드 접근
-    return student.name_korean || student.name_vietnamese || '이름 없음';
+    return student.name_ko || student.name_vi || '이름 없음';
   } catch (error) {
     console.error('Error getting student name:', error);
     return '이름 없음';

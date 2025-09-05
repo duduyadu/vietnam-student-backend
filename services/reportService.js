@@ -57,13 +57,13 @@ class EnhancedReportService {
         .first();
       
       if (result) {
-        console.log(`✅ Found student: ID=${result.student_id}, Code=${result.student_code}, Name=${result.name_korean || result.name_ko}`);
+        console.log(`✅ Found student: ID=${result.student_id}, Code=${result.student_code}, Name=${result.name_ko || result.name_korean}`);
       } else {
         console.log(`❌ No student found with ID: ${studentId}`);
         
         // 추가 디버깅: 실제로 어떤 학생들이 있는지 확인
         const allStudents = await db('students')
-          .select('student_id', 'student_code', 'name_korean')  // 🧠 ULTRATHINK: Supabase는 name_korean 사용!
+          .select('student_id', 'student_code', 'name_ko')  // 🧠 ULTRATHINK: Railway는 name_ko 사용!
           .orderBy('student_id', 'desc')
           .limit(5);
         console.log('📊 Recent students:', allStudents);
