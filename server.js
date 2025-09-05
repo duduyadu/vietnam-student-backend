@@ -111,7 +111,7 @@ const learningMetricsRoutes = require('./routes/learningMetrics'); // 학습 메
 const specialActivitiesRoutes = require('./routes/specialActivities'); // 특별활동 관리
 const characterEvaluationsRoutes = require('./routes/characterEvaluations'); // 생활 및 인성평가 관리
 const studentImageUploadRoutes = require('./routes/student-image-upload'); // 학생 사진 업로드
-const testDbRoutes = require('./routes/test-db'); // 🧠 ULTRATHINK: DB 테스트 엔드포인트
+// const testDbRoutes = require('./routes/test-db'); // 🧠 ULTRATHINK: DB 테스트 엔드포인트 (임시 비활성화)
 
 console.log('📚 Loading all routes...');
 
@@ -137,7 +137,7 @@ app.use('/api/teacher-evaluations', teacherEvaluationsRoutes); // 선생님별 �
 app.use('/api/learning-metrics', learningMetricsRoutes); // 학습 메트릭스 API
 app.use('/api/special-activities', specialActivitiesRoutes); // 특별활동 API
 app.use('/api/character-evaluations', characterEvaluationsRoutes); // 생활 및 인성평가 API
-app.use('/api', testDbRoutes); // 🧠 ULTRATHINK: DB 테스트 엔드포인트
+// app.use('/api', testDbRoutes); // 🧠 ULTRATHINK: DB 테스트 엔드포인트 (임시 비활성화)
 
 console.log('✅ All routes registered successfully');
 
