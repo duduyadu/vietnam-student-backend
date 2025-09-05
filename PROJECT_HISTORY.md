@@ -792,3 +792,38 @@ ALTER TABLE generated_reports
 2. **API 응답 일관성**: 혼동 없는 필드명과 메시지 사용
 3. **프론트-백엔드 계약**: 데이터 구조 명세 문서화 필수
 4. **시퀀스 관리**: DB 자동 증가 ID 관리 주의
+
+---
+
+## 2025-09-05 (오후): DB 컬럼명 혼돈의 진실 (ULTRATHINK)
+
+### 🔴 충격적 발견
+**우리가 완전히 반대로 이해하고 있었다!**
+
+### 🧠 ULTRATHINK 재분석
+#### 혼돈의 과정
+1. **초기 오류**: "column 'name_ko' does not exist"
+2. **잘못된 판단**: 프로덕션은 name_korean 사용한다고 생각
+3. **잘못된 수정**: 모든 코드를 name_korean으로 변경
+4. **진실 발견**: 프로덕션도 name_ko 사용!
+
+#### 실제 DB 스키마
+- **로컬 DB**: `name_ko`, `name_vi` ✅
+- **프로덕션 DB (Supabase)**: `name_ko`, `name_vi` ✅
+- **우리 착각**: name_korean, name_vietnamese ❌
+
+### ✅ 올바른 수정 방향
+1. **helpers/studentHelper.js**: name_ko, name_vi 사용
+2. **services/reportService.js**: name_ko 우선, name_korean 폴백
+3. **routes/students-optimized.js**: 양쪽 필드명 모두 수용
+
+### 💡 깨달은 점
+1. **가정하지 말고 확인하라**: DB 스키마는 직접 확인 필수
+2. **디버깅 강화**: 상세한 로그가 문제 해결의 열쇠
+3. **혼돈 기록**: 잘못된 길도 기록하여 반복 방지
+4. **환경 일관성**: 로컬과 프로덕션 DB 스키마 동일 유지
+
+### 📊 프로젝트 규모 (1년 1000명)
+- **성능**: 전혀 문제없음 (PostgreSQL은 수백만 건도 처리)
+- **ID 관리**: 자동 증가 시퀀스로 충분
+- **확장성**: 필요시 파티셔닝, 인덱스 최적화로 대응

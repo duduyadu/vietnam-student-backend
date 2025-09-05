@@ -57,13 +57,13 @@ class EnhancedReportService {
         .first();
       
       if (result) {
-        console.log(`✅ Found student: ID=${result.student_id}, Code=${result.student_code}, Name=${result.name_korean || result.name_ko}`);
+        console.log(`✅ Found student: ID=${result.student_id}, Code=${result.student_code}, Name=${result.name_ko || result.name_korean}`);
       } else {
         console.log(`❌ No student found with ID: ${studentId}`);
         
         // 추가 디버깅: 실제로 어떤 학생들이 있는지 확인
         const allStudents = await db('students')
-          .select('student_id', 'student_code', 'name_korean')
+          .select('student_id', 'student_code', 'name_ko')  // 🧠 ULTRATHINK: 프로덕션도 name_ko 사용!
           .orderBy('student_id', 'desc')
           .limit(5);
         console.log('📊 Recent students:', allStudents);
@@ -231,8 +231,8 @@ class EnhancedReportService {
       const student = await this.getStudentInfo(studentId);
       console.log('🎯 Student info:', {
         id: student?.student_id,
-        name_ko: student?.name_korean || student?.name_ko,  // 🧠 ULTRATHINK: DB 필드명 호환성
-        name_vi: student?.name_vietnamese || student?.name_vi,
+        name_ko: student?.name_ko || student?.name_korean,  // 🧠 ULTRATHINK: 프로덕션은 name_ko 사용!
+        name_vi: student?.name_vi || student?.name_vietnamese,
         student_code: student?.student_code
       });
       
@@ -863,7 +863,7 @@ class EnhancedReportService {
         console.error(`❌ Student not found with ID: ${studentId}`);
         throw new Error(`Student with ID ${studentId} does not exist in database`);
       }
-      console.log(`✅ Student found: ${studentExists.name_korean || studentExists.name_ko || studentExists.student_code}`);
+      console.log(`✅ Student found: ${studentExists.name_ko || studentExists.name_korean || studentExists.student_code}`);
       
       // 1. HTML 생성 (템플릿 사용)
       const htmlContent = await this.generateHTMLFromTemplate(studentId, language);
