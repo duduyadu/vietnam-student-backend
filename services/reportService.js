@@ -57,13 +57,16 @@ class EnhancedReportService {
         .first();
       
       if (result) {
-        console.log(`✅ Found student: ID=${result.student_id}, Code=${result.student_code}, Name=${result.name_ko || result.name_korean}`);
+        console.log(`✅ Found student: ID=${result.student_id}, Code=${result.student_code}, Name=${result.name_ko || result.name_korean || result.name_vi || result.name_vietnamese}`);
       } else {
         console.log(`❌ No student found with ID: ${studentId}`);
         
         // 추가 디버깅: 실제로 어떤 학생들이 있는지 확인
+        const isRailway = process.env.RAILWAY_ENVIRONMENT === 'production';
+        const nameField = isRailway ? 'name_ko' : 'name_korean';
+        
         const allStudents = await db('students')
-          .select('student_id', 'student_code', 'name_ko')  // 🧠 ULTRATHINK: Railway는 name_ko 사용!
+          .select('student_id', 'student_code', nameField)  // 🧠 ULTRATHINK: 환경별 필드명!
           .orderBy('student_id', 'desc')
           .limit(5);
         console.log('📊 Recent students:', allStudents);
@@ -862,14 +865,17 @@ class EnhancedReportService {
       if (!studentExists) {
         console.error(`❌ Student not found with ID: ${studentId}`);
         // 실제 존재하는 학생 ID 안내
+        const isRailway = process.env.RAILWAY_ENVIRONMENT === 'production';
+        const nameField = isRailway ? 'name_ko' : 'name_korean';
+        
         const existingStudents = await db('students')
-          .select('student_id', 'student_code', 'name_ko')
+          .select('student_id', 'student_code', nameField)
           .orderBy('student_id', 'desc')
           .limit(5);
         console.log('📋 Available students:', existingStudents);
         throw new Error(`Student with ID ${studentId} does not exist. Available IDs: ${existingStudents.map(s => s.student_id).join(', ')}`);
       }
-      console.log(`✅ Student found: ${studentExists.name_ko || studentExists.name_korean || studentExists.student_code}`);
+      console.log(`✅ Student found: ${studentExists.name_ko || studentExists.name_korean || studentExists.name_vi || studentExists.name_vietnamese || studentExists.student_code}`);
       
       // 1. HTML 생성 (템플릿 사용)
       const htmlContent = await this.generateHTMLFromTemplate(studentId, language);
