@@ -238,10 +238,10 @@ const server = app.listen(PORT, () => {
     console.log(`✅ Additional allowed origins: ${process.env.ALLOWED_ORIGINS}`);
   }
   
-  // 🧠 ULTRATHINK: DB 진단 실행 (배포 후 삭제 예정)
-  setTimeout(() => {
-    require('./test-railway-db');
-  }, 5000);
+  // 🧠 ULTRATHINK: DB 진단 실행 (임시 비활성화)
+  // setTimeout(() => {
+  //   require('./test-railway-db');
+  // }, 5000);
 });
 
 // 프로세스 에러 처리
