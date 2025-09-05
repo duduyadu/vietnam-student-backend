@@ -49,12 +49,30 @@ class EnhancedReportService {
   // 학생 정보 조회
   async getStudentInfo(studentId) {
     try {
+      // 🧠 ULTRATHINK: 디버깅 강화 및 정수 변환
+      console.log(`🔍 Fetching student with ID: ${studentId} (type: ${typeof studentId})`);
+      
       const result = await db('students')
-        .where('student_id', studentId)
+        .where('student_id', parseInt(studentId))  // 확실한 정수 변환
         .first();
+      
+      if (result) {
+        console.log(`✅ Found student: ID=${result.student_id}, Code=${result.student_code}, Name=${result.name_korean || result.name_ko}`);
+      } else {
+        console.log(`❌ No student found with ID: ${studentId}`);
+        
+        // 추가 디버깅: 실제로 어떤 학생들이 있는지 확인
+        const allStudents = await db('students')
+          .select('student_id', 'student_code', 'name_korean')
+          .orderBy('student_id', 'desc')
+          .limit(5);
+        console.log('📊 Recent students:', allStudents);
+      }
+      
       return result;
     } catch (error) {
-      console.error('Error fetching student info:', error);
+      console.error('❌ Error fetching student info:', error);
+      console.error('Error details:', error.message);
       return null;
     }
   }
@@ -213,8 +231,8 @@ class EnhancedReportService {
       const student = await this.getStudentInfo(studentId);
       console.log('🎯 Student info:', {
         id: student?.student_id,
-        name_ko: student?.name_ko,
-        name_vi: student?.name_vi,
+        name_ko: student?.name_korean || student?.name_ko,  // 🧠 ULTRATHINK: DB 필드명 호환성
+        name_vi: student?.name_vietnamese || student?.name_vi,
         student_code: student?.student_code
       });
       
