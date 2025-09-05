@@ -938,3 +938,43 @@ column "name_korean" does not exist
 - studentHelper.js와 reportService.js를 name_ko/name_vi로 수정
 - Railway 배포 완료
 - PDF 생성 오류 해결 예상
+
+---
+
+## 2025-09-05 (최종 해결): 환경별 DB 필드명 동적 처리
+
+### 🔴 진짜 문제 확인
+**로컬과 Railway의 DB 스키마가 다름!**
+
+#### 실제 스키마
+- **로컬 DB**: `name_korean`, `name_vietnamese` 사용
+- **Railway DB**: `name_ko`, `name_vi` 사용
+- **혼란의 원인**: 동일한 aws-1 서버지만 다른 스키마
+
+#### 학생 데이터 현황
+```
+ID 4-13까지 10명 존재:
+- ID 4: 박두양 (0072509001)
+- ID 11: 박두양 (0072509008)
+- ID 12: 서산수 (0072509009)
+- ID 13: ㅎㅎㅎㅎㅎ (0072509010)
+```
+
+### ✅ 최종 해결책
+**환경별 동적 필드명 처리 구현**
+
+1. **helpers/studentHelper.js**:
+```javascript
+const isRailway = process.env.RAILWAY_ENVIRONMENT === 'production';
+const nameField = isRailway ? 'name_ko' : 'name_korean';
+```
+
+2. **services/reportService.js**: 
+   - 동일한 환경 감지 로직 적용
+   - 모든 쿼리에서 동적 필드명 사용
+
+### 🎯 핵심 교훈
+1. **환경별 DB 스키마 차이**: 동일 서버여도 스키마가 다를 수 있음
+2. **동적 처리의 중요성**: 하드코딩 대신 환경 감지 코드 사용
+3. **철저한 검증**: 로컬과 프로덕션 모두에서 실제 데이터 확인 필수
+4. **ULTRATHINK 방법론**: 가정하지 말고 실제 데이터로 검증
