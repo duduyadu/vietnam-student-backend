@@ -734,3 +734,61 @@ return student.name_korean || student.name_vietnamese
 3. **Supabase SQL 실행**:
    - create-teacher-evaluations.sql 마이그레이션
    - 고아 레코드 정리
+
+---
+
+## 2025-09-05: student_id vs student_code 혼동 문제 해결 (ULTRATHINK)
+
+### 🔴 발견된 문제
+**사용자 시나리오**: 학생 등록 → 상담 기록 추가 → PDF 생성 시도 → 실패
+**오류**: "Student with ID 11 does not exist in database"
+
+### 🧠 ULTRATHINK 분석
+#### 근본 원인
+1. **API 응답 혼동**: 학생 생성 API가 메시지에서 student_code를 "학생 ID"라고 표시
+2. **프론트엔드 혼란**: student_code(V2024-0001)와 student_id(숫자)를 구분 못함
+3. **잘못된 ID 전달**: PDF 생성 시 존재하지 않는 student_id 사용
+
+#### 코드 분석
+```javascript
+// 문제가 된 코드 (students-optimized.js:386-389)
+res.status(201).json({
+  message: `학생이 등록되었습니다. 학생 ID: ${student_code}`,  // 혼동 유발!
+  data: newStudent
+});
+```
+
+### ✅ 적용한 해결책
+
+#### 1. API 응답 개선 (routes/students-optimized.js)
+```javascript
+res.status(201).json({
+  success: true,
+  message: `학생이 등록되었습니다. 학생 코드: ${student_code}`,
+  student_id: newStudent.student_id,  // 명시적으로 반환
+  student_code: student_code,
+  data: newStudent
+});
+```
+
+#### 2. DB 제약 수정 (fix-generated-reports-constraint.sql)
+```sql
+-- 오류 기록 시 student_id NULL 허용
+ALTER TABLE generated_reports 
+  ALTER COLUMN student_id DROP NOT NULL;
+```
+
+#### 3. 프론트엔드 가이드 작성 (FRONTEND_ID_GUIDE.md)
+- student_id vs student_code 명확한 구분
+- 올바른 사용 예시 제공
+- 디버깅 팁 포함
+
+#### 4. 디버깅 도구 생성
+- `debug-student-creation.sql`: 시퀀스 및 ID 문제 진단
+- `debug-pdf-error.sql`: PDF 생성 오류 추적
+
+### 🎯 교훈
+1. **명확한 네이밍**: ID와 Code 같은 용어는 명확히 구분
+2. **API 응답 일관성**: 혼동 없는 필드명과 메시지 사용
+3. **프론트-백엔드 계약**: 데이터 구조 명세 문서화 필수
+4. **시퀀스 관리**: DB 자동 증가 ID 관리 주의

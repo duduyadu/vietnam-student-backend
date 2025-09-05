@@ -383,9 +383,12 @@ router.post('/', async (req, res) => {
       });
     }
     
+    // 🧠 ULTRATHINK: student_id와 student_code를 명확히 구분
     res.status(201).json({
       success: true,
-      message: `학생이 등록되었습니다. 학생 ID: ${student_code}`,
+      message: `학생이 등록되었습니다. 학생 코드: ${student_code}`,
+      student_id: newStudent.student_id,  // 명시적으로 student_id 반환
+      student_code: student_code,
       data: newStudent
     });
     
