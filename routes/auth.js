@@ -30,9 +30,16 @@ router.post('/login', [
     // 사용자 조회
     console.log('Looking for user with username:', username);
     
-    // 디버깅: 테이블 컬럼 확인
-    const columns = await db.raw(`SELECT column_name FROM information_schema.columns WHERE table_name = 'users' AND table_schema = 'public'`);
-    console.log('🔍 Users table columns:', columns.rows.map(r => r.column_name).join(', '));
+    // 디버깅: 테이블 컬럼 확인 (에러 방지를 위해 try-catch 추가)
+    try {
+      const columns = await db.raw(`SELECT column_name FROM information_schema.columns WHERE table_name = 'users'`);
+      console.log('🔍 Users table columns:', columns.rows.map(r => r.column_name).join(', '));
+    } catch (err) {
+      console.log('❌ Cannot query table schema:', err.message);
+      if (err.message.includes('Tenant or user not found')) {
+        console.log('⚠️ This is a Supabase permission issue - skipping schema check');
+      }
+    }
     
     // 디버깅: 실제 데이터 확인 (두 가지 테이블 구조 모두 지원)
     try {

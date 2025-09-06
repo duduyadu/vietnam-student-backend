@@ -112,9 +112,11 @@ const specialActivitiesRoutes = require('./routes/specialActivities'); // 특별
 const characterEvaluationsRoutes = require('./routes/characterEvaluations'); // 생활 및 인성평가 관리
 const studentImageUploadRoutes = require('./routes/student-image-upload'); // 학생 사진 업로드
 const dbCheckRoutes = require('./routes/db-check'); // 🧠 ULTRATHINK: DB 진단 엔드포인트
+const debugRoutes = require('./routes/debug'); // 🧠 ULTRATHINK: 디버그 엔드포인트
 
 console.log('📚 Loading all routes...');
 
+app.use('/api/debug', debugRoutes); // 디버그 라우트 (임시)
 app.use('/api/auth', authRoutes);
 app.use('/api/students', studentsRoutes);
 app.use('/api/students', studentImageUploadRoutes); // 이미지 업로드 라우트 추가
