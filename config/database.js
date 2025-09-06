@@ -25,9 +25,11 @@ if (process.env.DATABASE_URL) {
   if (hasIPv6 || isProd) {
     console.log('⚠️ IPv6 detected or production mode - using IPv4 pooler instead');
     
-    // DATABASE_URL에서 비밀번호만 추출
+    // DATABASE_URL에서 비밀번호 추출 시도, 실패시 환경변수 사용
     const passwordMatch = dbUrl.match(/postgresql:\/\/[^:]+:([^@]+)@/);
-    const password = passwordMatch ? passwordMatch[1] : process.env.DB_PASSWORD || 'duyang3927duyang';
+    const password = passwordMatch ? decodeURIComponent(passwordMatch[1]) : 'duyang3927duyang';
+    
+    console.log('🔑 Using password from:', passwordMatch ? 'DATABASE_URL' : 'hardcoded default');
     
     // IPv4 Pooler 연결 강제 (Transaction mode, IPv6 회피)
     dbConfig = {
