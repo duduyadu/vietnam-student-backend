@@ -30,40 +30,33 @@ router.post('/login', [
     // 사용자 조회
     console.log('Looking for user with username:', username);
     
-    // 디버깅: 테이블 컬럼 확인 (에러 방지를 위해 try-catch 추가)
-    try {
-      const columns = await db.raw(`SELECT column_name FROM information_schema.columns WHERE table_name = 'users'`);
-      console.log('🔍 Users table columns:', columns.rows.map(r => r.column_name).join(', '));
-    } catch (err) {
-      console.log('❌ Cannot query table schema:', err.message);
-      if (err.message.includes('Tenant or user not found')) {
-        console.log('⚠️ This is a Supabase permission issue - skipping schema check');
-      }
-    }
+    // Railway 환경에서는 디버깅 최소화
+    const isRailway = process.env.RAILWAY_ENVIRONMENT === 'production' || process.env.USE_POOLER === 'true';
     
-    // 디버깅: 실제 데이터 확인 (두 가지 테이블 구조 모두 지원)
-    try {
-      // id 컬럼이 있는 경우
-      const allUsers = await db('users').select('id', 'username').limit(5);
-      console.log('📊 Sample users in DB (id):', allUsers);
-    } catch (err) {
-      // user_id 컬럼이 있는 경우
+    if (!isRailway) {
+      // 로컬 환경에서만 상세 디버깅
+      try {
+        const columns = await db.raw(`SELECT column_name FROM information_schema.columns WHERE table_name = 'users'`);
+        console.log('🔍 Users table columns:', columns.rows.map(r => r.column_name).join(', '));
+      } catch (err) {
+        console.log('❌ Cannot query table schema:', err.message);
+      }
+      
       try {
         const allUsers = await db('users').select('user_id', 'username').limit(5);
-        console.log('📊 Sample users in DB (user_id):', allUsers);
-      } catch (err2) {
-        console.log('❌ Cannot query users table:', err2.message);
+        console.log('📊 Sample users in DB:', allUsers);
+      } catch (err) {
+        console.log('❌ Cannot query users table:', err.message);
       }
     }
     
     // 디버깅: 먼저 username으로만 조회
     const userCheck = await db('users').where('username', username).first();
     console.log('User exists?:', userCheck ? 'Yes' : 'No');
-    if (userCheck) {
+    if (userCheck && !isRailway) {
       console.log('User is_active value:', userCheck.is_active);
-      console.log('User is_active type:', typeof userCheck.is_active);
       console.log('Available fields:', Object.keys(userCheck));
-      console.log('Password field:', userCheck.password ? 'password' : userCheck.password_hash ? 'password_hash' : 'NOT FOUND');
+      console.log('Password field:', userCheck.password_hash ? 'password_hash' : 'NOT FOUND');
     }
     
     // 실제 조회
