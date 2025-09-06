@@ -1,5 +1,72 @@
 # 베트남 유학생 관리 시스템 프로젝트 히스토리
 
+## 📅 2025-09-06 - Supabase "Tenant or user not found" 에러 해결 (ULTRATHINK)
+
+### 🚨 발생한 문제
+**증상**: Railway 프로덕션 환경에서 admin/admin123 로그인 시 500 에러
+```
+POST /api/auth/login 500
+Error: "Tenant or user not found"
+```
+
+### 🧠 ULTRATHINK 분석 과정
+
+#### 1. 초기 가정
+- Supabase 프로젝트 2개 혼선 의심 (duyang2's Project vs nano)
+- Railway가 다른 DB 사용 의심
+
+#### 2. 진단 과정
+```javascript
+// 로컬 DB 연결 테스트 → 정상
+// Admin 사용자 확인 → 존재함 (admin/admin123)
+// Railway 환경변수 확인 → 동일한 프로젝트 사용 중
+```
+
+#### 3. 근본 원인 발견
+**문제 코드**: `routes/auth.js` 34번째 줄
+```javascript
+// 문제가 된 코드
+const columns = await db.raw(`SELECT column_name FROM information_schema.columns 
+                              WHERE table_name = 'users' AND table_schema = 'public'`);
+```
+
+**원인**: Supabase의 멀티테넌시 시스템에서 `information_schema` 접근 시 권한 문제 발생
+
+### ✅ 해결 방법
+```javascript
+// 수정된 코드 - try-catch로 에러 처리
+try {
+  const columns = await db.raw(`SELECT column_name FROM information_schema.columns 
+                                WHERE table_name = 'users'`);
+  console.log('🔍 Users table columns:', columns.rows.map(r => r.column_name).join(', '));
+} catch (err) {
+  console.log('❌ Cannot query table schema:', err.message);
+  if (err.message.includes('Tenant or user not found')) {
+    console.log('⚠️ This is a Supabase permission issue - skipping schema check');
+  }
+}
+```
+
+### 📊 Railway 환경변수 (확인됨)
+```
+DATABASE_URL: postgresql://postgres:[password]@db.zowugqovtbukjstgblwk.supabase.co:5432/postgres
+DB_HOST: aws-1-ap-northeast-2.pooler.supabase.com
+DB_USER: postgres.zowugqovtbukjstgblwk
+USE_POOLER: true
+```
+
+### 🎯 핵심 교훈
+1. **Supabase 권한 시스템**: `information_schema` 쿼리는 Supabase에서 제한될 수 있음
+2. **디버깅 코드 주의**: 프로덕션 환경에서는 디버깅 코드도 에러 처리 필요
+3. **멀티테넌시 이해**: "Tenant or user not found"는 DB 권한 문제의 신호
+4. **환경 차이 인지**: 로컬과 프로덕션의 권한 차이 고려 필요
+
+### 🔧 추가 작업
+- 디버그 엔드포인트 추가 (`/api/debug/env`, `/api/debug/db`, `/api/debug/health`)
+- 향후 환경 진단을 위한 도구 구축
+
+---
+
 ## 📅 2025-09-03 - 로그인 및 등록 문제 디버깅
 
 ### 🚨 현재 발생한 주요 문제
