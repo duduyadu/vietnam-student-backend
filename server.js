@@ -92,7 +92,8 @@ app.use((req, res, next) => {
 app.options('*', cors(corsOptions));
 
 // Routes
-const authRoutes = require('./routes/auth');
+// 🧠 ULTRATHINK: 임시로 수정된 auth 사용
+const authRoutes = require('./routes/auth-fixed');
 const studentsRoutes = require('./routes/students-optimized'); // Using optimized version with ID generation
 const consultationsRoutes = require('./routes/consultations'); // Temporarily using regular version
 const menuRoutes = require('./routes/menu');
