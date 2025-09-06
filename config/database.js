@@ -31,12 +31,12 @@ if (process.env.DATABASE_URL) {
     
     console.log('🔑 Using password from:', passwordMatch ? 'DATABASE_URL' : 'hardcoded default');
     
-    // IPv4 Pooler 연결 강제 (Transaction mode, IPv6 회피)
+    // Supabase Pooler 정확한 정보 사용
     dbConfig = {
       client: 'pg',
       connection: {
-        host: 'aws-1-ap-northeast-2.pooler.supabase.com',  // Transaction pooler
-        port: 6543,  // Transaction pooler port
+        host: 'aws-0-ap-northeast-2.pooler.supabase.com',  // aws-0로 변경
+        port: 5432,  // Session pooler는 5432 포트
         database: 'postgres',
         user: 'postgres.zowugqovtbukjstgblwk',
         password: password,
